@@ -9,14 +9,51 @@
 // Import https://github.com/eligrey/FileSaver.js for downloading files
 
 var svgFile;
-var specifObject = new Object();
 var fileDate = new Date();
+
+// SPÄTER LÖSCHEN
+
+function getAllMethodNames(obj) {
+  let methods = new Set();
+  while (obj = Reflect.getPrototypeOf(obj)) {
+    let keys = Reflect.ownKeys(obj)
+    keys.forEach((k) => methods.add(k));
+  }
+  return methods;
+}
+
+
+/// a simple class hierarchy to test getAllMethodNames
+
+
+// kind of like an abstract base class
+class Shape {
+  constructor() {}
+  area() {
+    throw new Error("can't define area for generic shape, use a subclass")
+  }
+}
+
+// Square: a shape with a sideLength property, an area function and getSideLength function
+class Square extends Shape {
+  constructor(sideLength) {
+    super();
+    this.sideLength = sideLength;
+  }
+  area() {
+    return this.sideLength * this.sideLength
+  };
+  getSideLength() {
+    return this.sideLength
+  };
+}
+
+// SPÄTER LÖSCHEN
 
 // Einlesen der XML Datei
 function readFile() {
 	svgFile = document.getElementById("SVG").files[0];
 	fileDate = fileDate.toISOString();
-	console.log(fileDate);
 	var xmlFile = document.getElementById("XML").files[0];
 	var fileName = xmlFile.name;
 	var reader = new FileReader();	
@@ -27,9 +64,14 @@ function readFile() {
 		document.getElementById("output").innerHTML = reader.result;
 		analyzeFile(fileName, xmlString);
 	}
-
+/* 	
+	console.log(typeof x);
+	console.log(x.constructor.name);
+	console.log(getAllMethodNames(x));
+*/
 	
 }
+
 
 // Durchlaufen der XML Datei und überführen in das SpecIF Format
 function analyzeFile(fileName, xmlString) {
@@ -37,55 +79,44 @@ function analyzeFile(fileName, xmlString) {
 	var xmlDoc = parser.parseFromString(xmlString,"text/xml");
 	var typ,id,name,source,target,stereotype;
 	var elements = new Array();
-	var i, x;
+	var i, j, x, y;
 	
-	x = xmlDoc.getElementsByTagName("bpmn:collaboration");
-	console.log(x);
-	typ = x[0].nodeName;
+	x = xmlDoc.querySelectorAll("collaboration");
+	typ = x[0].nodeName;				// Name des Diagramms
 	id = x[0].getAttribute("id");
 	name = fileName.split(".")[0];
 	elements.push(resourceFinder(typ,id,name,source,target));
 
-	console.log(x[0].childNodes[1]); 
-	typ = x[0].childNodes[1].nodeName;
-	id = x[0].childNodes[1].getAttribute("processRef");
-	name = x[0].childNodes[1].getAttribute("name");
-	elements.push(resourceFinder(typ,id,name,source,target));
+	y = xmlDoc.querySelectorAll("process");
+	x = x[0].childNodes;
+	for (i = 0; i < x.length; i++){
+		if (x[i].nodeName.includes("participant") == true){
+			console.log(x[i].getAttribute("processRef"));
+			for (j = 0; j < y.length; j++){
+				if (y[j].nodeName.includes("process") == true){
+					console.log(y[j].getAttribute("id"));
+					if (x[i].getAttribute("processRef") == y[j].getAttribute("id")){
+						console.log("Treffer");						
+						elements = elements.concat(analyzeProcess(y[j], x[i].getAttribute("id"), x[i].getAttribute("name")));
+						console.log("elements sieht jetzt so aus:");
+						var clonedArray = JSON.parse(JSON.stringify(elements));
+						console.log(clonedArray);
+					}
+				}
+			}
+		}
+	}
 	
-	console.log("START PROZESSAUSWERTUNG")
-	x = xmlDoc.getElementsByTagName("bpmn:process")[0].childNodes;
-	console.log(x);
-	for (i = 0; i < x.length; i++){ // Schleife zum Erstellen aller Ressourcen und Platzhaltern für Gateways des Prozesses
-		if (x[i].nodeName != "#text" && x[i].nodeName != "bpmn:sequenceFlow"){
+	for (i = 0; i < x.length; i++){ // Messageflows mit Datentypen erstellen
+		if (x[i].nodeName.includes("messageFlow") == true){
 			typ = x[i].nodeName;
 			id = x[i].getAttribute("id");
 			name = x[i].getAttribute("name");
 			source = x[i].getAttribute("sourceRef");
 			target = x[i].getAttribute("targetRef");
-			elements.push(resourceFinder(typ,id,name,source,target,stereotype));
+			elements = elements.concat(statementFinder(elements,typ,id,name,source,target));
 		}
 	}
-	console.log("RESSOURCEN SIND DRIN");
-	console.log(elements);
-	console.log("STATEMENT ERSTELLEN");
-
-	for (i = 0; i < x.length; i++){ // Schleife zum erstellen der Statements zwischen den Ressourcen und Platzhaltern für Gateways
-		if (x[i].nodeName == "bpmn:sequenceFlow"){
-			typ = x[i].nodeName;
-			id = x[i].getAttribute("id");
-			name = x[i].getAttribute("name");
-			source = x[i].getAttribute("sourceRef");
-			target = x[i].getAttribute("targetRef");
-			elements.push(statementFinder(elements,typ,id,name,source,target));
-		}
-	}
-	
-	console.log("STATEMENTS SIND DRIN");
-	console.log(elements);
-	
-	console.log("GATEWAYS UND IHRE SEQUENFLUESSE AUFLOESEN");
-	resolveGateways(elements);
-	console.log("ELEMENTE BEREINIGT");
 	
 	id = 1;
 	for (i = 1; i < elements.length; i++){ // Beziehungen zwischen Diagram und Elementen
@@ -94,56 +125,128 @@ function analyzeFile(fileName, xmlString) {
 			id++;
 		}
 	}
+	
+	console.log("elements sieht jetzt so aus:");
+	var clonedArray = JSON.parse(JSON.stringify(elements));
+	console.log(clonedArray);
 
-	id = 1;
-	for (i = 2; i < elements.length; i++){ // Beziehungen zwischen Diagram und Elementen
-		if (elements[i].resourceType == "RT-Act" || elements[i].resourceType == "RT-Evt" || elements[i].resourceType == "RT-Sta"){
-			elements.push({id:"Diagram_contains_"+id, title:"SpecIF:contains", statementType:"ST-Containment", subject:elements[1].id, object:elements[i].id, changedAt:fileDate});
-			id++;
-		}
-	}
+	
 
 	jsonBuilder(elements);
 	
 //	var myJSON = JSON.stringify(elements);
 //	console.log(elements);
 //	console.log(myJSON);
+
 }
+
+// Analysieren eines Prozesses im XML
+function analyzeProcess(nodeList, participantId, name){
+	var typ,id,name,source,target,stereotype;
+	var i;
+	x = nodeList;
+	var erg = new Array();
+
+	if (name == "Hauptprozess"){
+		return erg;
+	}
+	
+	erg.push(resourceFinder(x.nodeName, participantId, name));
+	
+	
+	x = x.childNodes;
+//	console.log(x);
+	for (i = 0; i < x.length; i++){ // Schleife zum Erstellen aller Ressourcen und Platzhaltern für Gateways des Prozesses
+		if (x[i].nodeName != "#text" && x[i].nodeName != "bpmn:sequenceFlow" && x[i].nodeName != "sequenceFlow" && x[i].nodeName != "extensionElements" && x[i].nodeName != "laneSet" && x[i].nodeName != "documentation"){
+			typ = x[i].nodeName;
+			id = x[i].getAttribute("id");
+			name = x[i].getAttribute("name");
+			source = x[i].getAttribute("sourceRef");
+			target = x[i].getAttribute("targetRef");
+			erg.push(resourceFinder(typ,id,name,source,target,stereotype));
+		}
+	}
+//	console.log("RESSOURCEN SIND DRIN");
+	var clonedArray = JSON.parse(JSON.stringify(erg));
+//	console.log(clonedArray);
+//	console.log("STATEMENT ERSTELLEN");
+
+	for (i = 0; i < x.length; i++){ // Schleife zum erstellen der Statements zwischen den Ressourcen und Platzhaltern für Gateways
+		if (x[i].nodeName == "bpmn:sequenceFlow" || x[i].nodeName == "sequenceFlow"){
+			typ = x[i].nodeName;
+			id = x[i].getAttribute("id");
+			name = x[i].getAttribute("name");
+			source = x[i].getAttribute("sourceRef");
+			target = x[i].getAttribute("targetRef");
+			erg.push(statementFinder(erg,typ,id,name,source,target));
+		}
+	}
+	
+//	console.log("STATEMENTS SIND DRIN");
+	var clonedArray = JSON.parse(JSON.stringify(erg));
+//	console.log(clonedArray);
+//	console.log("GATEWAYS UND IHRE SEQUENFLUESSE AUFLOESEN");
+	resolveGateways(erg);
+	var clonedArray = JSON.parse(JSON.stringify(erg));
+//	console.log(clonedArray);
+//	console.log("ELEMENTE BEREINIGT");
+	
+	id = 1;
+	for (i = 1; i < erg.length; i++){ // Beziehungen zwischen Prozess (Akteur) und Elementen
+		if (erg[i].resourceType == "RT-Act" || erg[i].resourceType == "RT-Evt" || erg[i].resourceType == "RT-Sta"){
+			erg.push({id:"Diagram_contains_"+id, title:"SpecIF:contains", statementType:"ST-Containment", subject:erg[0].id, object:erg[i].id, changedAt:fileDate});
+			id++;
+		}
+	}
+//	console.log(erg);
+	return erg;
+}
+
 
 // Übersetzen eines BPMN-Elements in SpecIF
 function resourceFinder(typ,id,name,source,target,stereotype) {
 	if (typeof stereotype == "undefined"){
 		stereotype = "none";
 	}
+		if (typ.includes("bpmn:")){
+		typ = typ.split(":")[1];
+	}
 	switch (typ){
-		case "bpmn:collaboration":
+		case "collaboration":
 			var properties = new Array();
 			properties.push({ title:"dcterms:title", propertyType:"PT-Pln-Name", value:name},
 							{title:"SpecIF:Diagram", propertyType:"PT-Pln-Diagram", value:"<div><p> Dies ist der hochgeladene BPMN-Prozess </p><p class=\"inline-label\"> Model View: </p><div class=\"forImage\" style=\"max-width: 600px;\" > <object data=\"BusinessProcess.svg\" type=\"image/svg+xml\" >BusinessProcess</object></div></div>"},
 							{title:"SpecIF:Notation", propertyType:"PT-Pln-Notation", value:"BPMN 2.0 Process Diagram"});
 			return erg = {id:id, title:name, properties:properties, resourceType:"RT-Pln", changedAt:fileDate};
 			
-		case "bpmn:startEvent":
-		case "bpmn:endEvent":
+		case "startEvent":
+		case "endEvent":
 			var properties = new Array();
 			properties.push({ title:"dcterms:title", propertyType:"PT-Evt-Name", value:name},
 							{ title:"SpecIF:Stereotype", propertyType:"PT-Evt-Stereotype", value:stereotype});
 			return erg = {id:id, title:name, properties:properties, resourceType:"RT-Evt", changedAt:fileDate};
 		
-		case "bpmn:participant":		
-		case "bpmn:task":
-		case "bpmn:userTask":
+		case "participant":
+		case "process":
+		case "task":
+		case "userTask":
 			var properties = new Array();
 			properties.push({ title:"dcterms:title", propertyType:"PT-Act-Name", value:name},
 							{ title:"SpecIF:Stereotype", propertyType:"PT-Act-Stereotype", value:stereotype});
 			return erg = {id:id, title:name, properties:properties, resourceType:"RT-Act", changedAt:fileDate};
 			
-		case "bpmn:parallelGateway":
+		case "dataObjectReference":
+			var properties = new Array();
+			properties.push({ title:"dcterms:title", propertyType:"PT-Sta-Name", value:name},
+							{ title:"SpecIF:Stereotype", propertyType:"PT-Sta-Stereotype", value:stereotype});			
+			return erg = {id:id, title:name, properties:properties, resourceType:"RT-Sta", changedAt:fileDate};	
+			
+		case "parallelGateway":
 			var incoming = new Array();
 			var outgoing = new Array();
 			return erg = {id:id, title:name, incoming:incoming, outgoing:outgoing, resourceType:"parallelGateway", changedAt:fileDate};			
 
-		case "bpmn:exclusiveGateway":
+		case "exclusiveGateway":
 			var incoming = new Array();
 			var outgoing = new Array();
 			return erg = {id:id, title:name, incoming:incoming, outgoing:outgoing, resourceType:"exklusiveGateway", changedAt:fileDate};			
@@ -154,15 +257,33 @@ function resourceFinder(typ,id,name,source,target,stereotype) {
 }
 
 function statementFinder(elements,typ,id,name,source,target) {
+	if (typ.includes("bpmn:")){
+		typ = typ.split(":")[1];
+	}
+	console.log(source);
+	console.log(target);	
+	
+	
+	var subject = elements.find(function(resource) {
+	return resource.id == source;});
+	var object = elements.find(function(resource) {
+	return resource.id == target;});
+	
+
+	
 	switch (typ){
-		case "bpmn:sequenceFlow":
-			var subject = elements.find(function(resource) {
-			return resource.id == source;});
-//			console.log(subject);
-			var object = elements.find(function(resource) {
-			return resource.id == target;});
-//			console.log(object);
-			
+		case "messageFlow":
+/*			console.log("I BIMS DER MESSAGEFLOW");
+			console.log(subject);
+			console.log(object);
+			console.log(id);
+			console.log(resourceFinder("dataObjectReference",id+"_1",name));
+*/			var erg = [];
+			erg.push(resourceFinder("dataObjectReference",id+"_1",name));
+			erg.push({id:id+"_2", title:"SpecIF:writes", statementType:"ST-Writing", subject:subject.id, object:id+"_1", changedAt:fileDate});
+			erg.push({id:id+"_3", title:"SpecIF:reads", statementType:"ST-Reading", subject:object.id, object:id+"_1", changedAt:fileDate});
+			return erg
+		case "sequenceFlow":		
 			if (subject.resourceType == "RT-Act" && object.resourceType == "RT-Act"){
 				return erg = {id:id, title:"SpecIF:follows", statementType:"ST-Following", subject:object.id, object:subject.id, changedAt:fileDate};
 			}
@@ -193,26 +314,26 @@ function resolveGateways(elements) {
 //		console.log("case 1"); // Paralleles Gateway ausgehend 1 -> x
 			for (j = 0; j < elements[i].outgoing.length; j++){ 
 				elements[i].outgoing[j].subject = elements[i].incoming[0].subject;
-				elements.push(statementFinder(elements, "bpmn:sequenceFlow", elements[i].outgoing[j].id, "", elements[i].outgoing[j].subject, elements[i].outgoing[j].object));
+				elements.push(statementFinder(elements, "sequenceFlow", elements[i].outgoing[j].id, "", elements[i].outgoing[j].subject, elements[i].outgoing[j].object));
 				}
 		}
 		
 		if (elements[i].resourceType == "parallelGateway" && elements[i].outgoing.length == 1){
 //		console.log("case 2"); // Paralleles Gateway eingehend x -> 1
-		elements.push(resourceFinder("bpmn:task",elements[i].id,"Warte auf vorherige Elemente", null, null, elements[i].id));
+		elements.push(resourceFinder("task",elements[i].id,"Warte auf vorherige Elemente", null, null, elements[i].id));
 		elements[i].id = null;
-		elements.push(statementFinder(elements, "bpmn:sequenceFlow", elements[i].outgoing[0].id, "", elements[i].outgoing[0].subject, elements[i].outgoing[0].object));
+		elements.push(statementFinder(elements, "sequenceFlow", elements[i].outgoing[0].id, "", elements[i].outgoing[0].subject, elements[i].outgoing[0].object));
 			for (j = 0; j < elements[i].incoming.length; j++){ 
-				elements.push(statementFinder(elements, "bpmn:sequenceFlow", elements[i].incoming[j].id, "", elements[i].incoming[j].subject, elements[i].incoming[j].object));
+				elements.push(statementFinder(elements, "sequenceFlow", elements[i].incoming[j].id, "", elements[i].incoming[j].subject, elements[i].incoming[j].object));
 				}	
 		}
 		
 		if (elements[i].resourceType == "exklusiveGateway" && elements[i].incoming.length == 1){
 //		console.log("case 3"); // Exklusives Gateway ausgehend 1 -> x
 			for (j = 0; j < elements[i].outgoing.length; j++){ 				
-				elements.push(resourceFinder("bpmn:startEvent",elements[i].id+"_"+j, elements[i].outgoing[j].title, null, null, elements[i].id )); // eigentlich intermediate Event		
-				elements.push(statementFinder(elements, "bpmn:sequenceFlow", elements[i].incoming[0].id+"_"+j, ""	, elements[i].incoming[0].subject	, elements[i].id+"_"+j));
-				elements.push(statementFinder(elements, "bpmn:sequenceFlow", elements[i].outgoing[j].id, ""			, elements[i].id+"_"+j				, elements[i].outgoing[j].object)); // Bug bei Event auf Event
+				elements.push(resourceFinder("startEvent",elements[i].id+"_"+j, elements[i].outgoing[j].title, null, null, elements[i].id )); // eigentlich intermediate Event		
+				elements.push(statementFinder(elements, "sequenceFlow", elements[i].incoming[0].id+"_"+j, ""	, elements[i].incoming[0].subject	, elements[i].id+"_"+j));
+				elements.push(statementFinder(elements, "sequenceFlow", elements[i].outgoing[j].id, ""			, elements[i].id+"_"+j				, elements[i].outgoing[j].object)); // Bug bei Event auf Event
 				}	
 		}
 		
@@ -238,9 +359,9 @@ function jsonBuilder(elements) {
 	console.log("JSON BAUEN");
 	var d = new Date();
 	var array = new Object();
-	array.id = "BPMN-"+(d.getDate()+""+d.getMonth()+""+d.getFullYear()+""+d.getHours()+""+d.getMinutes()+""+d.getSeconds());
-	array.title = prompt("Bitte geben Sie einen Projektnamen ein","DefaultTitle");
-	array.description = prompt("Bitte geben Sie eine Projektbeschreibung ein","DefaultDescription");
+	array.id = "BPMN-"+(d.getDate()+""+d.getMonth()+""+d.getFullYear()+""+d.getHours()+""+d.getMinutes()+""+d.getSeconds()); 
+	array.title = prompt("Bitte geben Sie einen Projektnamen ein","DefaultTitle");												// Projektname im iLaH
+	array.description = prompt("Bitte geben Sie eine Projektbeschreibung ein","DefaultDescription");							// Projektbeschreibung im iLaH
 	array.specifVersion = "0.10.3";
 	
 	var dataTypes = new Array(); // Benötigte Datentypen werden definiert
@@ -361,7 +482,7 @@ function jsonBuilder(elements) {
 	nodeList[1].nodes.push({id:"N-Folder1.2", resource:"Folder1.2", nodes:[], changedAt:fileDate});
 	nodeList[1].nodes.push({id:"N-Folder1.3", resource:"Folder1.3", nodes:[], changedAt:fileDate});
 	
-	console.log(nodeList);
+//	console.log(nodeList);
 
 	for (i=0; i<resources.length; i++){
 		if (resources[i].resourceType == "RT-Act"){
@@ -376,13 +497,13 @@ function jsonBuilder(elements) {
 
 	}
 	
-	console.log(nodeList);
+//	console.log(nodeList);
 	
 	hierarchies.push({
 		id:"outline",
 		title:array.title,
 		hierarchyType:"HT-BPMN-Prozessmodell",
-		nodes:nodeList, // Für jede Resource, ich kann in die Nodes weitere Nodelists haben
+		nodes:nodeList, // Für jede Resource, ich kann in den Nodes weitere Nodelists haben
 		changedAt:fileDate
 	});
 	
@@ -400,18 +521,18 @@ function jsonBuilder(elements) {
 	var myJSON = JSON.stringify(array);
 	var myBeautyJSON = JSON.stringify(array, null, "\t");
 	document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;
-	console.log(myJSON);
-	zipCreator(myJSON, svgFile);
+//	console.log(myJSON);
+	zipCreator(myJSON, svgFile, array.title);
 }
 
 // Herunterladen einer .specifz Datei
-function zipCreator(json, svg) {
+function zipCreator(json, svg, title) {
 	var zip = new JSZip();
 	zip.file("BPMN.specif", json);
 	zip.file("BusinessProcess.svg", svg);
 	zip.generateAsync({type:"blob"})
 	.then(function (blob) {
-		saveAs(blob, "BPMN.specifz");
+		saveAs(blob, title + ".specifz");
 	});
 }
 
