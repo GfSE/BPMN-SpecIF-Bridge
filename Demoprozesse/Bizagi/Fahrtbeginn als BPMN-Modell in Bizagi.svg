@@ -1,0 +1,222 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="954px" height="685px">
+  <style type="text/css"><![CDATA[	.style1{fill:#E6FF97;stroke:#62A716;stroke-width:2;}	.style2{fill:#ECEFFF;stroke:#03689A;stroke-width:2;}	.style3{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def10);}	.style4{fill:#FFFFCC;stroke:#A6A61D;stroke-width:2;}	.style5{fill:#EEAAAA;stroke:#990000;stroke-width:3;}	.style6{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def14);}	.style7{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def16);}	.style8{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def17);}	.style9{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def18);}	.style10{fill:#FFFFFF;}	.style11{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def24);}	.style12{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def26);}	.style13{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def28);}	.style14{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def30);}	.style15{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def32);}	.style16{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def34);}	.style17{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def36);}	.style18{text-rendering:auto;font-family:'Segoe UI';font-size:8pt;fill:#000000;clip-path:url(#def38);}]]></style>
+  <defs>
+    <path id="f52a2c23-b506-41d5-9368-d9d32a954a7eHeaderPath" fill-rule="evenodd" d="M 485.6,197 L 655.6,197 L 655.6,247 L 485.6,247 Z " />
+    <clipPath id="4a60a58f-1766-4375-ac38-17a5dbfb32d0HeaderClipPath">
+      <use xlink:href="#f52a2c23-b506-41d5-9368-d9d32a954a7eHeaderPath" />
+    </clipPath>
+    <path id="c684cc15-a094-41e2-a258-f6e5516bc148HeaderPath" fill-rule="evenodd" d="M 21,572 L 334,572 L 334,622 L 21,622 Z " />
+    <clipPath id="2ed6f828-0e4f-4bbe-9564-53ced673c2a9HeaderClipPath">
+      <use xlink:href="#c684cc15-a094-41e2-a258-f6e5516bc148HeaderPath" />
+    </clipPath>
+    <path id="5b840c4d-81c2-4ef3-9775-d835b75c288fHeaderPath" fill-rule="evenodd" d="M 17,193 L 188,193 L 188,243 L 17,243 Z " />
+    <clipPath id="5269d106-97b2-446d-9548-715cd4ee3f11HeaderClipPath">
+      <use xlink:href="#5b840c4d-81c2-4ef3-9775-d835b75c288fHeaderPath" />
+    </clipPath>
+    <ellipse id="def7" cx="15" cy="15" rx="15" ry="15" />
+    <clipPath id="def8">
+      <use xlink:href="#def7" transform="translate(0,0)" />
+    </clipPath>
+    <path id="def9" fill-rule="evenodd" d="M 7,0 L 83,0 L 83,0 C 86.87,-0 90,3.13 90,7 C 90,7 90,7 90,7 L 90,7 L 90,53 L 90,53 C 90,56.87 86.87,60 83,60 L 83,60 L 7,60 L 7,60 C 3.13,60 0,56.87 0,53 L 0,53 L 0,7 L 0,7 C -0,3.13 3.13,0 7,0 Z " />
+    <clipPath id="def10">
+      <use xlink:href="#def9" transform="translate(0,0)" />
+    </clipPath>
+    <polygon id="def11" points="-0,20 20,-0 40,20 20,40 -0,20 " />
+    <clipPath id="def12">
+      <use xlink:href="#def11" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def13">
+      <use xlink:href="#def7" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def14">
+      <use xlink:href="#def9" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def15">
+      <use xlink:href="#def11" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def16">
+      <use xlink:href="#def9" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def17">
+      <use xlink:href="#def9" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def18">
+      <use xlink:href="#def9" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def19">
+      <use xlink:href="#def7" transform="translate(0,0)" />
+    </clipPath>
+    <clipPath id="def20">
+      <use xlink:href="#def11" transform="translate(0,0)" />
+    </clipPath>
+    <marker id="defMarkerShadow" viewbox="0 0 10 8" refX="10" refY="4" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto" fill="#000000" fill-opacity="0.1">
+      <path fill-rule="evenodd" d="M 9,4 L 1,9 L 3,4 L 1,-1 Z " />
+    </marker>
+    <marker id="defMarker" viewbox="0 0 10 8" refX="10" refY="4" markerUnits="strokeWidth" markerWidth="10" markerHeight="8" orient="auto" fill="#000000" fill-opacity="1">
+      <path fill-rule="evenodd" d="M 9,4 L 1,9 L 3,4 L 1,-1 Z " />
+    </marker>
+    <rect id="def23" width="127" height="44" />
+    <clipPath id="def24">
+      <use xlink:href="#def23" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def25" width="84" height="30" />
+    <clipPath id="def26">
+      <use xlink:href="#def25" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def27" width="54" height="30" />
+    <clipPath id="def28">
+      <use xlink:href="#def27" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def29" width="64" height="44" />
+    <clipPath id="def30">
+      <use xlink:href="#def29" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def31" width="73" height="44" />
+    <clipPath id="def32">
+      <use xlink:href="#def31" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def33" width="68" height="44" />
+    <clipPath id="def34">
+      <use xlink:href="#def33" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def35" width="83" height="44" />
+    <clipPath id="def36">
+      <use xlink:href="#def35" transform="translate(0,0)" />
+    </clipPath>
+    <rect id="def37" width="62" height="44" />
+    <clipPath id="def38">
+      <use xlink:href="#def37" transform="translate(0,0)" />
+    </clipPath>
+  </defs>
+  <g>
+    <rect x="485.6" y="27" width="438" height="170" rx="0" ry="0" style="fill:#FFFFFF;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <line x1="535.6" y1="27" x2="535.6" y2="197" style="stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text style="font-family:'Segoe UI';font-size:8pt;font-weight:bold;fill:#000000;clip-path:url(#4a60a58f-1766-4375-ac38-17a5dbfb32d0HeaderClipPath);" transform="rotate(-90 485.6 197)">
+      <tspan x="542.7025" y="216.0417">Empfänger</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="21" y="259" width="913" height="313" rx="0" ry="0" style="fill:#FFFFFF;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <line x1="71" y1="259" x2="71" y2="572" style="stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text style="font-family:'Segoe UI';font-size:8pt;font-weight:bold;fill:#000000;clip-path:url(#2ed6f828-0e4f-4bbe-9564-53ced673c2a9HeaderClipPath);" transform="rotate(-90 21 572)">
+      <tspan x="161.4462" y="591.0417">Fahrer</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="17" y="22" width="451" height="171" rx="0" ry="0" style="fill:#FFFFFF;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <line x1="67" y1="22" x2="67" y2="193" style="stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text style="font-family:'Segoe UI';font-size:8pt;font-weight:bold;fill:#000000;clip-path:url(#5269d106-97b2-446d-9548-715cd4ee3f11HeaderClipPath);" transform="rotate(-90 17 193)">
+      <tspan x="41.22484" y="212.0417">Fleetmanagementsystem</tspan>
+    </text>
+  </g>
+  <use id="b04a555e-7284-4f9e-bf08-d6469f309161" xlink:href="#def7" class="style1" x="98" y="410" />
+  <g id="b04a555e-7284-4f9e-bf08-d6469f309161Container" transform="translate(98,410)" />
+  <use id="d92c1220-b908-4611-9495-439e44519b85" xlink:href="#def9" class="style2" x="170" y="395" />
+  <g id="d92c1220-b908-4611-9495-439e44519b85Container" transform="translate(170,395)">
+    <text id="d92c1220-b908-4611-9495-439e44519b85Text" class="style3">	<tspan x="12" y="25">Auftragsdaten </tspan><tspan x="8" y="39">synchronisieren</tspan></text>
+  </g>
+  <use id="8c2e48dd-6c07-4bf2-a228-564955c6bbb2" xlink:href="#def11" class="style4" x="295" y="405" />
+  <g id="8c2e48dd-6c07-4bf2-a228-564955c6bbb2Container" transform="translate(295,405)" />
+  <g>
+    <path style="fill:#A6A61D;stroke:#A6A61D;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" d="M 7.5907754,21.105005 20.718352,7.530912 23.665359,10.388616 10.627086,23.962708 z" transform="translate(299.4,409.2)" />
+    <path style="fill:#A6A61D;stroke:#A6A61D;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" d="M 7.5907754,10.388616 10.627086,7.530912 23.665359,21.105005 20.718352,23.962708 z" transform="translate(299.4,409.2)" />
+  </g>
+  <use id="0d949a95-d003-4243-9d68-bacad1ae0e3d" xlink:href="#def7" class="style5" x="300" y="319" />
+  <g id="0d949a95-d003-4243-9d68-bacad1ae0e3dContainer" transform="translate(300,319)" />
+  <use id="66be0c16-16ca-43f5-90f2-b215ec729ac5" xlink:href="#def9" class="style2" x="393" y="395" />
+  <g id="66be0c16-16ca-43f5-90f2-b215ec729ac5Container" transform="translate(393,395)">
+    <text id="66be0c16-16ca-43f5-90f2-b215ec729ac5Text" class="style6">	<tspan x="26" y="25">Auftrag </tspan><tspan x="21" y="39">auswählen</tspan></text>
+  </g>
+  <use id="67c1d945-597b-4fb9-ad9b-314c11b66952" xlink:href="#def11" class="style4" x="514" y="405" />
+  <g id="67c1d945-597b-4fb9-ad9b-314c11b66952Container" transform="translate(514,405)" />
+  <g>
+    <path style="fill:#A6A61D;stroke:#A6A61D;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" d="m 13.663396,7.530912 3.929342,0 0,7.054956 7.054956,0 0,4.018646 -7.054956,0 0,7.054956 -3.929342,0 0,-7.054956 -6.965653,0 0,-4.018646 6.965653,0 z" transform="translate(518.5,408.5)" />
+  </g>
+  <use id="1b090235-7a4d-4feb-b671-dbdd8e516bc3" xlink:href="#def9" class="style2" x="573" y="310" />
+  <g id="1b090235-7a4d-4feb-b671-dbdd8e516bc3Container" transform="translate(573,310)">
+    <text id="1b090235-7a4d-4feb-b671-dbdd8e516bc3Text" class="style7">	<tspan x="17" y="25">Empfänger  </tspan><tspan x="12" y="39">kontaktieren</tspan></text>
+  </g>
+  <use id="2ce44e80-d422-4ded-b0cd-4522f967505b" xlink:href="#def9" class="style2" x="571" y="470" />
+  <g id="2ce44e80-d422-4ded-b0cd-4522f967505bContainer" transform="translate(571,470)">
+    <text id="2ce44e80-d422-4ded-b0cd-4522f967505bText" class="style8">	<tspan x="29" y="25">Route </tspan><tspan x="17" y="39">berechnen</tspan></text>
+  </g>
+  <use id="8998cbe1-08a8-447c-bc4f-98e08c269e34" xlink:href="#def9" class="style2" x="754" y="397" />
+  <g id="8998cbe1-08a8-447c-bc4f-98e08c269e34Container" transform="translate(754,397)">
+    <text id="8998cbe1-08a8-447c-bc4f-98e08c269e34Text" class="style9">	<tspan x="20" y="25">Mit Roller </tspan><tspan x="20" y="39">losfahren</tspan></text>
+  </g>
+  <use id="5779e63d-107e-4673-b455-a34223a728d7" xlink:href="#def7" class="style5" x="883" y="412" />
+  <g id="5779e63d-107e-4673-b455-a34223a728d7Container" transform="translate(883,412)" />
+  <use id="bcf06ec3-2e4b-4737-b9cd-db818780749d" xlink:href="#def11" class="style4" x="681" y="407" />
+  <g id="bcf06ec3-2e4b-4737-b9cd-db818780749dContainer" transform="translate(681,407)" />
+  <g>
+    <path style="fill:#A6A61D;stroke:#A6A61D;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" d="m 13.663396,7.530912 3.929342,0 0,7.054956 7.054956,0 0,4.018646 -7.054956,0 0,7.054956 -3.929342,0 0,-7.054956 -6.965653,0 0,-4.018646 6.965653,0 z" transform="translate(685.5,410.5)" />
+  </g>
+  <polyline id="f459c424-26d7-4b3b-8a68-8fdcafeff1fe" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 58,0 " marker-end="url(#defMarker)" transform="translate(335,425)" />
+  <text x="364" y="423" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="b97f575d-793d-4d35-830e-405db3708115" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,56 0,0 " marker-end="url(#defMarker)" transform="translate(315,349)" />
+  <text x="315" y="375" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="997976a5-7846-4c49-b7c7-7d8413c09440" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 33,0 " marker-end="url(#defMarker)" transform="translate(721,427)" />
+  <text x="737.5" y="425" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="bf4b68f4-4840-4907-a8ac-0c2e347b0b7b" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,53 28,53 34,52.99997 37.31366,52.99997 39.99994,50.31369 39.99994,46.99997 40,0 " marker-end="url(#defMarker)" transform="translate(661,447)" />
+  <text x="701" y="498" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="9db3481f-feb9-4ea3-b1dc-5afdb832d57e" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-dasharray:5,5;stroke-width:1;" points="0,0 0,108.5 1,108.5 1,202 " marker-end="url(#defMarker)" transform="translate(231,193)" />
+  <text x="231.5" y="299.5" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="78c154c5-10c3-429a-b5e4-8929b9f3256f" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="6.103516E-05,65.00003 6.103516E-05,12.00003 0,6.000031 0,2.68631 2.68634,3.051758E-05 6,0 39.00006,3.051758E-05 " marker-end="url(#defMarker)" transform="translate(534,340)" />
+  <text x="534" y="338" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="a3fad4cf-4d39-404a-be48-1348e35e4534" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 0,43 0,49 0,52.31369 2.686279,55 6,54.99997 37,55 " marker-end="url(#defMarker)" transform="translate(534,445)" />
+  <text x="534" y="498" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="03b47776-55f0-48db-91f1-79bbf2271486" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 39,0 " marker-end="url(#defMarker)" transform="translate(844,427)" />
+  <text x="863.5" y="425" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="450b65ff-45e9-4e0c-b6d1-02764d1c3909" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 42,0 " marker-end="url(#defMarker)" transform="translate(128,425)" />
+  <text x="149" y="423" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="eea2e5f5-41a7-4b14-a1d6-83a7c1342577" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 31,0 " marker-end="url(#defMarker)" transform="translate(483,425)" />
+  <text x="498.5" y="423" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="a7234f24-9172-470b-bc02-468d6968feb4" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,3.051758E-05 26,3.051758E-05 31.99994,3.051758E-05 35.31366,0 37.99994,2.68631 37.99994,6 37.99994,6 37.99994,6.000031 37.99994,6.000031 38,67.00003 " marker-end="url(#defMarker)" transform="translate(663,340)" />
+  <text x="701" y="338" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="30271bed-fa74-4090-a80f-d2c989973c5a" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-dasharray:5,5;stroke-width:1;" points="0,113 0,0 " marker-end="url(#defMarker)" transform="translate(618,197)" />
+  <text x="618" y="251.5" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="3b3e2684-d9b4-46fd-b7b1-68c95d88df45" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-width:1;" points="0,0 35,0 " marker-end="url(#defMarker)" transform="translate(260,425)" />
+  <text x="277.5" y="423" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <polyline id="ede8b468-a913-49eb-b3cf-146c43b75209" style="stroke:#000000;fill:none;stroke-opacity:1;stroke-dasharray:5,5;stroke-width:1;" points="0,202 0,0 " marker-end="url(#defMarker)" transform="translate(197,193)" />
+  <text x="197" y="292" style="font-family:'Segoe UI';font-size:8pt;fill:#000000;">
+  </text>
+  <g id="Text_0b589481-90af-433c-9fc4-56bb9683e882Container" transform="translate(619,213)">
+    <text id="Text_0b589481-90af-433c-9fc4-56bb9683e882Text" class="style11">	<tspan x="7" y="14">Versandbestätigung</tspan></text>
+  </g>
+  <g id="Text_fff87491-59b4-4d84-9056-d129459be992Container" transform="translate(233,223)">
+    <text id="Text_fff87491-59b4-4d84-9056-d129459be992Text" class="style12">	<tspan x="7" y="14">Auftragsdaten</tspan></text>
+  </g>
+  <g id="Text_9cac7161-7a2d-48e1-b414-41fa92d955cbContainer" transform="translate(137,213)">
+    <text id="Text_9cac7161-7a2d-48e1-b414-41fa92d955cbText" class="style13">	<tspan x="7" y="14">Anfrage</tspan></text>
+  </g>
+  <g id="Text_58d88eae-2ca0-4815-b763-c61d261d58b7Container" transform="translate(331,430)">
+    <text id="Text_58d88eae-2ca0-4815-b763-c61d261d58b7Text" class="style14">	<tspan x="7" y="14">Server </tspan><tspan x="7" y="29">erreichbar</tspan></text>
+  </g>
+  <g id="Text_1a66a546-3958-4247-b2d2-fe0198c346e8Container" transform="translate(313,360)">
+    <text id="Text_1a66a546-3958-4247-b2d2-fe0198c346e8Text" class="style15">	<tspan x="7" y="14">Server nicht </tspan><tspan x="7" y="29">erreichbar</tspan></text>
+  </g>
+  <g id="Text_5779e63d-107e-4673-b455-a34223a728d7Container" transform="translate(864,448)">
+    <text id="Text_5779e63d-107e-4673-b455-a34223a728d7Text" class="style16">	<tspan x="20" y="14">Fahrt </tspan><tspan x="5" y="29">begonnen!</tspan></text>
+  </g>
+  <g id="Text_0d949a95-d003-4243-9d68-bacad1ae0e3dContainer" transform="translate(272,276)">
+    <text id="Text_0d949a95-d003-4243-9d68-bacad1ae0e3dText" class="style17">	<tspan x="28" y="14">Fahrt </tspan><tspan x="6" y="29">abgebrochen!</tspan></text>
+  </g>
+  <g id="Text_b04a555e-7284-4f9e-bf08-d6469f309161Container" transform="translate(82,446)">
+    <text id="Text_b04a555e-7284-4f9e-bf08-d6469f309161Text" class="style18">	<tspan x="16" y="14">Roller </tspan><tspan x="6" y="29">gestartet!</tspan></text>
+  </g>
+  <image x="844" y="632" width="90" height="43" xlink:href="data:image/png;base64,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" />
+</svg>
