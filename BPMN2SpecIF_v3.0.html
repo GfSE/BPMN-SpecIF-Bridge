@@ -496,11 +496,11 @@
         // Bauen eines SpecIF Projekts im JSON Format
         function jsonBuilder(elements) {
             var d = new Date();
-            var array = new Object();
-            array.id = "BPMN-" + (d.getDate() + "" + d.getMonth() + "" + d.getFullYear() + "" + d.getHours() + "" + d.getMinutes() + "" + d.getSeconds());
-            array.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
-            array.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
-            array.specifVersion = "0.10.3";
+            var model = new Object();	// process model in SpecIF/JSON format
+            model.id = "BPMN-" + (d.getDate() + "" + d.getMonth() + "" + d.getFullYear() + "" + d.getHours() + "" + d.getMinutes() + "" + d.getSeconds());
+            model.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
+            model.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
+            model.specifVersion = "0.10.3";
 
             var dataTypes = new Array(); // Benötigte Datentypen werden definiert
             dataTypes.push({
@@ -852,25 +852,25 @@
 
             hierarchies.push({
                 id: "outline",
-                title: array.title,
+                title: model.title,
                 hierarchyType: "HT-BPMN-Prozessmodell",
                 nodes: nodeList,
                 changedAt: fileDate
             });
 
             // Verbinden der einzelnen SpecIF-Bestandteile mit dem Hauptknoten
-            array.dataTypes = dataTypes;
-            array.resourceTypes = resourceTypes;
-            array.statementTypes = statementTypes;
-            array.hierarchyTypes = hierarchyTypes;
-            array.resources = resources;
-            array.statements = statements;
-            array.hierarchies = hierarchies;
+            model.dataTypes = dataTypes;
+            model.resourceTypes = resourceTypes;
+            model.statementTypes = statementTypes;
+            model.hierarchyTypes = hierarchyTypes;
+            model.resources = resources;
+            model.statements = statements;
+            model.hierarchies = hierarchies;
 
-            var myJSON = JSON.stringify(array);
-            var myBeautyJSON = JSON.stringify(array, null, "\t");
+            var myJSON = JSON.stringify(model);
+            var myBeautyJSON = JSON.stringify(model, null, "\t");
             document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
-            zipCreator(myJSON, svgFile, array.title);
+            zipCreator(myJSON, svgFile, model.title)
         }
 
         // Herunterladen der .specifz Datei
