@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+        // Import http://stuk.github.io/jszip/ for zip files
+    <script language="javascript" src="lib/jszip/dist/jszip.js"></script>
+        // Import https://github.com/eligrey/FileSaver.js for downloading files
+    <script language="javascript" src="lib/filesaver/src/FileSaver.js"></script>
+		// The transformation from BPMN to SpecIF plus storage as ZIP:
+    <script language="javascript" src="js/BPMN2Specif.js"></script>
+
+    <script>
+        var svgFile;
+        var fileDate = new Date();
+
+        // Einlesen der XML Datei
+        function readFile() {
+            svgFile = document.getElementById("SVG").files[0];
+            fileDate = fileDate.toISOString();
+            var xmlFile = document.getElementById("XML").files[0];
+            var fileName = xmlFile.name;
+            var reader = new FileReader();
+            reader.readAsText(xmlFile);
+            reader.onloadend = function() {
+                var xmlString = reader.result;
+                document.getElementById("output").innerHTML = reader.result;
+				
+				// transform to SpecIF and store as ZIP:
+                BPMN2Specif( fileName, xmlString, svgFile )
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <h2>BPMN 2.0 to SpecIF Prototype</h2>
+
+    <p>BPMN Grafik
+        <input type="file" id="SVG">
+
+        <p>BPMN XML
+            <input type="file" id="XML"></p>
+
+        <p>Output:</p>
+        <textarea id="output" name="text" cols="180" rows="20"></textarea>
+
+        <p>
+            <button type="button" onclick="readFile()">BPMN Dateien in .specifz umwandeln</button>
+        </p>
+
+</body>
+
+</html>
