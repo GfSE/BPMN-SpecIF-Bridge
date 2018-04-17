@@ -11,15 +11,17 @@
     <script language="javascript" src="js/BPMN2Specif.js"></script>
 
     <script>
-        var svgFile;
-        var fileDate = new Date();
-
         // Einlesen der XML Datei
         function readFile() {
-            svgFile = document.getElementById("SVG").files[0];
-            fileDate = fileDate.toISOString();
             var xmlFile = document.getElementById("XML").files[0];
-            var fileName = xmlFile.name;
+			var opts = {};
+			opts.fileName = xmlFile.name;
+			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
+			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
+			opts.svgFile = document.getElementById("SVG").files[0];
+			opts.fileDate = new Date();
+            opts.fileDate = opts.fileDate.toISOString();
+
             var reader = new FileReader();
             reader.readAsText(xmlFile);
             reader.onloadend = function() {
@@ -27,7 +29,7 @@
                 document.getElementById("output").innerHTML = reader.result;
 				
 				// transform to SpecIF and store as ZIP:
-                BPMN2Specif( fileName, xmlString, svgFile )
+                BPMN2Specif( xmlString, opts )
             }
         }
     </script>
