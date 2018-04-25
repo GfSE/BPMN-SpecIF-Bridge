@@ -3,11 +3,11 @@
 
 <head>
     <meta charset="utf-8" />
-        // Import http://stuk.github.io/jszip/ for zip files
+        // Import http://stuk.github.io/jszip/ for zip files:
     <script language="javascript" src="lib/jszip/dist/jszip.js"></script>
-        // Import https://github.com/eligrey/FileSaver.js for downloading files
+        // Import https://github.com/eligrey/FileSaver.js for downloading files:
     <script language="javascript" src="lib/filesaver/src/FileSaver.js"></script>
-		// The transformation from BPMN to SpecIF plus storage as ZIP:
+		// The transformation from BPMN to SpecIF:
     <script language="javascript" src="js/BPMN2Specif.js"></script>
 
     <script>
@@ -36,20 +36,20 @@
 				document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
 				zipCreator(myJSON, opts.svgFile, opts.title)
             }
-
-			// Lokales Speichern der .specifz Datei
-			function zipCreator(json, svg, title) {
-				var zip = new JSZip();
-				zip.file("BPMN.specif", json);
-				zip.file("BusinessProcess.svg", svg);
-				zip.generateAsync({
-						type: "blob"
-					})
-					.then(function(blob) {
-						saveAs(blob, title + ".specifz");
-					});
-			}
         }
+
+		// Store the .specifz file locally:
+		function zipCreator(json, svg, title) {
+			var zip = new JSZip();
+			zip.file("BPMN.specif", json);
+			zip.file("BusinessProcess.svg", svg);
+			zip.generateAsync({
+					type: "blob"
+				})
+				.then(function(blob) {
+					saveAs(blob, title + ".specifz");
+				});
+		}
     </script>
 </head>
 
