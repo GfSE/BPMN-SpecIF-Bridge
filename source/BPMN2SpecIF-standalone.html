@@ -28,9 +28,27 @@
                 var xmlString = reader.result;
                 document.getElementById("output").innerHTML = reader.result;
 				
-				// transform to SpecIF and store as ZIP:
-                BPMN2Specif( xmlString, opts )
+				// transform to SpecIF:
+                var model = BPMN2Specif( xmlString, opts );
+				// ... and store as ZIP:
+				var myJSON = JSON.stringify(model);
+				var myBeautyJSON = JSON.stringify(model, null, "\t");
+				document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
+				zipCreator(myJSON, opts.svgFile, opts.title)
             }
+
+			// Lokales Speichern der .specifz Datei
+			function zipCreator(json, svg, title) {
+				var zip = new JSZip();
+				zip.file("BPMN.specif", json);
+				zip.file("BusinessProcess.svg", svg);
+				zip.generateAsync({
+						type: "blob"
+					})
+					.then(function(blob) {
+						saveAs(blob, title + ".specifz");
+					});
+			}
         }
     </script>
 </head>

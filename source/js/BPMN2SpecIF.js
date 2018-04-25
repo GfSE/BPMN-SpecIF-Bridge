@@ -54,10 +54,9 @@ function BPMN2Specif( xmlString, opts ) {
 			id++;
 		}
 	}
-	var clonedArray = JSON.parse(JSON.stringify(elements));
+//	var clonedArray = JSON.parse(JSON.stringify(elements));
 	console.log(elements);
-	jsonBuilder( elements, opts );
-	return
+	return jsonBuilder( elements, opts );
 
 // called functions:	
 	// Analysieren eines Prozesses
@@ -840,23 +839,7 @@ function BPMN2Specif( xmlString, opts ) {
 		model.resources = resources;
 		model.statements = statements;
 		model.hierarchies = hierarchies;
-
-		var myJSON = JSON.stringify(model);
-		var myBeautyJSON = JSON.stringify(model, null, "\t");
-		document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
-		zipCreator(myJSON, opts.svgFile, opts.title)
-	}
-
-	// Lokales Speichern der .specifz Datei
-	function zipCreator(json, svg, title) {
-		var zip = new JSZip();
-		zip.file("BPMN.specif", json);
-		zip.file("BusinessProcess.svg", svg);
-		zip.generateAsync({
-				type: "blob"
-			})
-			.then(function(blob) {
-				saveAs(blob, title + ".specifz");
-			});
+		
+		return model
 	}
 }
