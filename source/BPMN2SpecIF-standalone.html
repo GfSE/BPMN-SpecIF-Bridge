@@ -13,12 +13,12 @@
     <script>
         // Einlesen der XML Datei
         function readFile() {
-            var xmlFile = document.getElementById("XML").files[0];
+            var xmlFile = document.getElementById("XML").files[0],
+				svgFile = document.getElementById("SVG").files[0];
 			var opts = {};
 			opts.fileName = xmlFile.name;
 			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
 			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
-			opts.svgFile = document.getElementById("SVG").files[0];
 			opts.fileDate = new Date();
             opts.fileDate = opts.fileDate.toISOString();
 
@@ -34,7 +34,7 @@
 				var myJSON = JSON.stringify(model);
 				var myBeautyJSON = JSON.stringify(model, null, "\t");
 				document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
-				zipCreator(myJSON, opts.svgFile, opts.title)
+				zipCreator(myJSON, svgFile, opts.title)
             }
         }
 
@@ -55,20 +55,22 @@
 
 <body>
 
-    <h2>BPMN 2.0 to SpecIF Prototype</h2>
+    <h2>BPMN 2.0 to SpecIF Transformation</h2>
 
     <p>BPMN Grafik
         <input type="file" id="SVG">
+	</p>
 
-        <p>BPMN XML
-            <input type="file" id="XML"></p>
+	<p>BPMN XML
+		<input type="file" id="XML">
+	</p>
 
-        <p>Output:</p>
-        <textarea id="output" name="text" cols="180" rows="20"></textarea>
+	<p>Output:</p>
+	<textarea id="output" name="text" cols="180" rows="20"></textarea>
 
-        <p>
-            <button type="button" onclick="readFile()">BPMN Dateien in .specifz umwandeln</button>
-        </p>
+	<p>
+		<button type="button" onclick="readFile()">BPMN Dateien in .specifz umwandeln</button>
+	</p>
 
 </body>
 
