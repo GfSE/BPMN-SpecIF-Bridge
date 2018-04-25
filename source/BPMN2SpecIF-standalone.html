@@ -3,15 +3,15 @@
 
 <head>
     <meta charset="utf-8" />
-        // Import http://stuk.github.io/jszip/ for zip files:
+    <!-- Import http://stuk.github.io/jszip/ for zip files: -->
     <script language="javascript" src="lib/jszip/dist/jszip.js"></script>
-        // Import https://github.com/eligrey/FileSaver.js for downloading files:
+    <!-- Import https://github.com/eligrey/FileSaver.js for downloading files: -->
     <script language="javascript" src="lib/filesaver/src/FileSaver.js"></script>
-		// The transformation from BPMN to SpecIF:
+	<!-- The transformation from BPMN to SpecIF: -->
     <script language="javascript" src="js/BPMN2Specif.js"></script>
 
     <script>
-        // Einlesen der XML Datei
+        // Read the files, transform BPMN to SpecIF and store locally as ZIP:
         function readFile() {
             var xmlFile = document.getElementById("XML").files[0],
 				svgFile = document.getElementById("SVG").files[0];
