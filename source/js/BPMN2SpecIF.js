@@ -3,6 +3,7 @@
 
 // Durchlaufen der XML Datei und Überführen der Elemente in das SpecIF Format
 function BPMN2Specif( xmlString, opts ) {
+	"use strict";
 	var parser = new DOMParser();
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
 	var typ, id, name, source, target, stereotype;
