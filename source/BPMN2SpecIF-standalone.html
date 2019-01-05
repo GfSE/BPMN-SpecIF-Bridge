@@ -47,8 +47,8 @@
 					type: "blob"
 				})
 				.then(function(blob) {
-					saveAs(blob, title + ".specifz");
-				});
+					saveAs(blob, title + ".specifz")
+				})
 		}
     </script>
 </head>
@@ -65,12 +65,12 @@
 		<input type="file" id="XML">
 	</p>
 
-	<p>Output:</p>
-	<textarea id="output" name="text" cols="180" rows="20"></textarea>
-
 	<p>
 		<button type="button" onclick="readFile()">BPMN Dateien in .specifz umwandeln</button>
 	</p>
+
+	<p>Output:</p>
+	<textarea id="output" name="text" cols="180" rows="20"></textarea>
 
 </body>
 
