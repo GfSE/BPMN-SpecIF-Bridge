@@ -124,16 +124,15 @@ function BPMN2Specif( xmlString, opts ) {
 	function resourceFinder(typ, id, name, source, target, stereotype) {
 		// Anpassung für BPMN.io, da dort bpmn: im Tag verwendet wird
 		if (typ.includes("bpmn:")) { 
-			typ = typ.split(":")[1];
+			typ = typ.split(":")[1]
 		};
 		if (typeof(stereotype) == "undefined") {
-			stereotype = typ;
+			stereotype = typ
 		};
 
 		switch (typ) {
 			case "collaboration":
-				var properties = new Array();
-				properties.push({
+				var properties = [{
 					title: "dcterms:title",
 					propertyType: "PT-Pln-Name",
 					value: name
@@ -147,7 +146,7 @@ function BPMN2Specif( xmlString, opts ) {
 					title: "SpecIF:Notation",
 					propertyType: "PT-Pln-Notation",
 					value: "BPMN 2.0 Process Diagram"
-				});
+				}];
 				return {
 					id: id,
 					title: name,
@@ -159,8 +158,7 @@ function BPMN2Specif( xmlString, opts ) {
 			case "startEvent":
 			case "intermediateThrowEvent":
 			case "endEvent":
-				var properties = new Array();
-				properties.push({
+				var properties = [{
 					title: "dcterms:title",
 					propertyType: "PT-Evt-Name",
 					value: name
@@ -168,7 +166,7 @@ function BPMN2Specif( xmlString, opts ) {
 					title: "SpecIF:Stereotype",
 					propertyType: "PT-Evt-Stereotype",
 					value: stereotype
-				});
+				}];
 				return {
 					id: id,
 					title: name,
@@ -181,8 +179,7 @@ function BPMN2Specif( xmlString, opts ) {
 			case "process":
 			case "task":
 			case "userTask":
-				var properties = new Array();
-				properties.push({
+				var properties = [{
 					title: "dcterms:title",
 					propertyType: "PT-Act-Name",
 					value: name
@@ -190,7 +187,7 @@ function BPMN2Specif( xmlString, opts ) {
 					title: "SpecIF:Stereotype",
 					propertyType: "PT-Act-Stereotype",
 					value: stereotype
-				});
+				}];
 				return {
 					id: id,
 					title: name,
@@ -200,8 +197,7 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 
 			case "dataObjectReference":
-				var properties = new Array();
-				properties.push({
+				var properties = [{
 					title: "dcterms:title",
 					propertyType: "PT-Sta-Name",
 					value: name
@@ -209,7 +205,7 @@ function BPMN2Specif( xmlString, opts ) {
 					title: "SpecIF:Stereotype",
 					propertyType: "PT-Sta-Stereotype",
 					value: stereotype
-				});
+				}];
 				return {
 					id: id,
 					title: name,
@@ -219,25 +215,21 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 
 			case "parallelGateway":
-				var incoming = new Array();
-				var outgoing = new Array();
 				return {
 					id: id,
 					title: name,
-					incoming: incoming,
-					outgoing: outgoing,
+					incoming: [],
+					outgoing: [],
 					resourceType: "parallelGateway",
 					changedAt: opts.fileDate
 				};
 
 			case "exclusiveGateway":
-				var incoming = new Array();
-				var outgoing = new Array();
 				return {
 					id: id,
 					title: name,
-					incoming: incoming,
-					outgoing: outgoing,
+					incoming: [],
+					outgoing: [],
 					resourceType: "exklusiveGateway",
 					changedAt: opts.fileDate
 				};
@@ -250,13 +242,13 @@ function BPMN2Specif( xmlString, opts ) {
 	// Nachrichten- oder Sequenzfluss in SpecIF-Elemente übersetzen:
 	function statementFinder(elements, typ, id, name, source, target) {
 		if (typ.includes("bpmn:")) {
-			typ = typ.split(":")[1];
+			typ = typ.split(":")[1]
 		}
 		var subject = elements.find(function(resource) {
-			return resource.id == source;
+			return resource.id == source
 		});
 		var object = elements.find(function(resource) {
-			return resource.id == target;
+			return resource.id == target
 		});
 
 		switch (typ) {
@@ -301,12 +293,12 @@ function BPMN2Specif( xmlString, opts ) {
 						if (el.title == "SpecIF:contains" && el.object == subject.id) {
 							participant = elements.find(function(resource) {
 								return resource.id == el.subject;
-							});
+							})
 						}
 					});
 					elements.forEach( function(el) {
 						if (el.title == "SpecIF:contains" && el.subject == participant.id) {
-							statementCount++;
+							statementCount++
 						}
 					});
 					erg.push({
@@ -322,7 +314,7 @@ function BPMN2Specif( xmlString, opts ) {
 				if (object.properties[1].value == "participant") { // Ist das Objekt ein Pool bzw. Participant?
 					elements.forEach( function(el) {
 						if (el.title == "SpecIF:contains" && el.subject == object.id) {
-							statementCount++;
+							statementCount++
 						}
 					});
 					erg.push({
@@ -338,13 +330,13 @@ function BPMN2Specif( xmlString, opts ) {
 					elements.forEach( function(el) { 
 						if (el.title == "SpecIF:contains" && el.object == object.id) {
 							participant = elements.find(function(resource) {
-								return resource.id == el.subject;
+								return resource.id == el.subject
 							})
 						}
 					});
 					elements.forEach( function(el) {
 						if (el.title == "SpecIF:contains" && el.subject == participant.id) {
-							statementCount++;
+							statementCount++
 						}
 					});
 					erg.push({
@@ -432,7 +424,7 @@ function BPMN2Specif( xmlString, opts ) {
 			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { 
 				el.outgoing.forEach( function(outg) {
 					outg.subject = el.incoming[0].subject;
-					elements.push(statementFinder(elements, "sequenceFlow", outg.id, "", outg.subject, outg.object));
+					elements.push(statementFinder(elements, "sequenceFlow", outg.id, "", outg.subject, outg.object))
 				})
 			};
 
@@ -442,7 +434,7 @@ function BPMN2Specif( xmlString, opts ) {
 				el.id = null;
 				elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[0].id, "", el.outgoing[0].subject, el.outgoing[0].object));
 				el.incoming.forEach( function(inco) {
-					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object));
+					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object))
 				})
 			};
 
@@ -451,7 +443,7 @@ function BPMN2Specif( xmlString, opts ) {
 				for ( var j = 0; j < el.outgoing.length; j++) {
 					elements.push(resourceFinder("intermediateThrowEvent", el.id + "_" + j, el.outgoing[j].title, null, null, "exklusiveGateway"));
 					elements.push(statementFinder(elements, "sequenceFlow", el.incoming[0].id + "_" + j, "", el.incoming[0].subject, el.id + "_" + j));
-					elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[j].id, "", el.id + "_" + j, el.outgoing[j].object));
+					elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[j].id, "", el.id + "_" + j, el.outgoing[j].object))
 				}
 			};
 
@@ -459,7 +451,7 @@ function BPMN2Specif( xmlString, opts ) {
 			if (el.resourceType == "exklusiveGateway" && el.outgoing.length == 1) { 
 				el.incoming.forEach( function(inco) {
 					inco.object = el.outgoing[0].object;
-					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object));
+					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object))
 				})
 			}
 		});
