@@ -104,8 +104,6 @@ function BPMN2Specif( xmlString, opts ) {
 
 		// Beziehungen zwischen Prozess Elementen herstellen:
 		id = 1;
-		// Beziehungen zwischen Prozess Elementen herstellen:
-		id = 1;
 		for (i = 1; i < erg.length; i++) { 
 			if (erg[i].resourceType == "RT-Act" || erg[i].resourceType == "RT-Evt" || erg[i].resourceType == "RT-Sta") {
 				erg.push({
@@ -336,7 +334,8 @@ function BPMN2Specif( xmlString, opts ) {
 						changedAt: opts.fileDate
 					})
 				} else {
-					elements.forEach( function(el) { // Schleife zum Finden des Teilnehmers bzw. Pools
+					// Schleife zum Finden des Teilnehmers bzw. Pools
+					elements.forEach( function(el) { 
 						if (el.title == "SpecIF:contains" && el.object == object.id) {
 							participant = elements.find(function(resource) {
 								return resource.id == el.subject;
@@ -429,14 +428,16 @@ function BPMN2Specif( xmlString, opts ) {
 	// ! Funktioniert nicht bei direkt aufeinanderfolgenden Gateways !
 	function resolveGateways(elements) {
 		elements.forEach( function(el) {
-			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { // Paralleles Gateway ausgehend 1 -> x
+			// Paralleles Gateway ausgehend 1 -> x
+			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { 
 				el.outgoing.forEach( function(outg) {
 					outg.subject = el.incoming[0].subject;
 					elements.push(statementFinder(elements, "sequenceFlow", outg.id, "", outg.subject, outg.object));
 				})
 			};
 
-			if (el.resourceType == "parallelGateway" && el.outgoing.length == 1) { // Paralleles Gateway eingehend x -> 1
+			// Paralleles Gateway eingehend x -> 1
+			if (el.resourceType == "parallelGateway" && el.outgoing.length == 1) { 
 				elements.push(resourceFinder("task", el.id, "Warte auf vorherige Elemente", null, null, "parallelGateway"));
 				el.id = null;
 				elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[0].id, "", el.outgoing[0].subject, el.outgoing[0].object));
@@ -445,7 +446,8 @@ function BPMN2Specif( xmlString, opts ) {
 				})
 			};
 
-			if (el.resourceType == "exklusiveGateway" && el.incoming.length == 1) { // Exklusives Gateway ausgehend 1 -> x
+			// Exklusives Gateway ausgehend 1 -> x
+			if (el.resourceType == "exklusiveGateway" && el.incoming.length == 1) { 
 				for ( var j = 0; j < el.outgoing.length; j++) {
 					elements.push(resourceFinder("intermediateThrowEvent", el.id + "_" + j, el.outgoing[j].title, null, null, "exklusiveGateway"));
 					elements.push(statementFinder(elements, "sequenceFlow", el.incoming[0].id + "_" + j, "", el.incoming[0].subject, el.id + "_" + j));
@@ -453,7 +455,8 @@ function BPMN2Specif( xmlString, opts ) {
 				}
 			};
 
-			if (el.resourceType == "exklusiveGateway" && el.outgoing.length == 1) { // Exklusives Gateway eingehend x -> 1
+			// Exklusives Gateway eingehend x -> 1
+			if (el.resourceType == "exklusiveGateway" && el.outgoing.length == 1) { 
 				el.incoming.forEach( function(inco) {
 					inco.object = el.outgoing[0].object;
 					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object));
@@ -464,11 +467,10 @@ function BPMN2Specif( xmlString, opts ) {
 		// Gateways entfernen:
 		let i = 0;
 		while ( i<elements.length ) {
-			if (elements[i].statementType == "gatewayFlow" || elements[i].resourceType == "parallelGateway" || elements[i].resourceType == "exklusiveGateway") {
+			if (elements[i].statementType == "gatewayFlow" || elements[i].resourceType == "parallelGateway" || elements[i].resourceType == "exklusiveGateway") 
 				elements.splice(i, 1);
-			} else {
+			else
 				i++
-			}
 		}
 	}
 
