@@ -60,10 +60,12 @@ function BPMN2Specif( xmlString, opts ) {
 			id++
 		}
 	});
+
 //	var clonedArray = JSON.parse(JSON.stringify(elements));
 	console.debug(elements);
 	return modelBuilder( elements, opts );
 
+// =======================================
 // called functions:	
 	function analyzeProcess(nodeList, participantId, name) {
 		var typ, id, name, source, target, stereotype;
@@ -78,13 +80,14 @@ function BPMN2Specif( xmlString, opts ) {
 		// Erstellen aller Ressourcen und Platzhaltern für Gateways:
 		x = nodeList.childNodes;
 		x.forEach( function(xe) {
-			if (xe.nodeName != "#text" && xe.nodeName != "bpmn:sequenceFlow" && xe.nodeName != "sequenceFlow" && xe.nodeName != "extensionElements" && xe.nodeName != "laneSet" && xe.nodeName != "documentation") {
+		//	if (xe.nodeName != "#text" && xe.nodeName != "bpmn:sequenceFlow" && xe.nodeName != "sequenceFlow" && xe.nodeName != "extensionElements" && xe.nodeName != "laneSet" && xe.nodeName != "documentation") {
+			if( ["#text","bpmn:sequenceFlow","sequenceFlow","extensionElements","laneSet","documentation"].indexOf(xe.nodeName)<0 ) {	
 				typ = xe.nodeName;
 				id = xe.getAttribute("id");
 				name = xe.getAttribute("name");
 				source = xe.getAttribute("sourceRef");
 				target = xe.getAttribute("targetRef");
-				erg.push(resourceFinder(typ, id, name, source, target, stereotype));
+				erg.push(resourceFinder(typ, id, name, source, target, stereotype))
 			}
 		});
 
@@ -96,16 +99,18 @@ function BPMN2Specif( xmlString, opts ) {
 				name = xe.getAttribute("name");
 				source = xe.getAttribute("sourceRef");
 				target = xe.getAttribute("targetRef");
-				erg.push(statementFinder(erg, typ, id, name, source, target));
+				erg.push(statementFinder(erg, typ, id, name, source, target))
 			}
 		});
 
-		resolveGateways(erg); // Auflösen der Gateways 
+		// Gateways auflösen:
+		transformGateways(erg);  
 
 		// Beziehungen zwischen Prozess Elementen herstellen:
 		id = 1;
 		for (i = 1; i < erg.length; i++) { 
-			if (erg[i].resourceType == "RT-Act" || erg[i].resourceType == "RT-Evt" || erg[i].resourceType == "RT-Sta") {
+		//	if (erg[i].resourceType == "RT-Act" || erg[i].resourceType == "RT-Evt" || erg[i].resourceType == "RT-Sta") {
+			if( ["RT-Act","RT-Evt","RT-Sta"].indexOf(erg[i].resourceType)>-1 ) {
 				erg.push({
 					id: erg[0].id + "_contains_" + id,
 					title: "SpecIF:contains",
@@ -114,7 +119,7 @@ function BPMN2Specif( xmlString, opts ) {
 					object: erg[i].id,
 					changedAt: opts.fileDate
 				});
-				id++;
+				id++
 			}
 		};
 		return erg
@@ -418,7 +423,7 @@ function BPMN2Specif( xmlString, opts ) {
 
 	// Ressourcen und Statements aus den Gateways und ihren Sequenzflüssen herstellen
 	// ! Funktioniert nicht bei direkt aufeinanderfolgenden Gateways !
-	function resolveGateways(elements) {
+	function transformGateways(elements) {
 		elements.forEach( function(el) {
 			// Paralleles Gateway ausgehend 1 -> x
 			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { 
@@ -460,7 +465,7 @@ function BPMN2Specif( xmlString, opts ) {
 		let i = 0;
 		while ( i<elements.length ) {
 			if (elements[i].statementType == "gatewayFlow" || elements[i].resourceType == "parallelGateway" || elements[i].resourceType == "exklusiveGateway") 
-				elements.splice(i, 1);
+				elements.splice(i, 1)
 			else
 				i++
 		}
@@ -641,7 +646,7 @@ function BPMN2Specif( xmlString, opts ) {
 		statementTypes.push({
 			id: "ST-Visibility",
 			title: "SpecIF:shows",
-			description: "Relation: Plan shows Model-Element",
+			description: "Statement: Plan shows Model-Element",
 			subjectTypes: ["RT-Pln"],
 			objectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
 			changedAt: opts.fileDate
@@ -649,7 +654,7 @@ function BPMN2Specif( xmlString, opts ) {
 		statementTypes.push({
 			id: "ST-Containment",
 			title: "SpecIF:contains",
-			description: "Relation: Model-Element contains Model-Element",
+			description: "Statement: Model-Element contains Model-Element",
 			subjectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
 			objectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
 			changedAt: opts.fileDate
@@ -657,7 +662,7 @@ function BPMN2Specif( xmlString, opts ) {
 		statementTypes.push({
 			id: "ST-Storage",
 			title: "SpecIF:stores",
-			description: "Relation: Actor (Role, Function) writes and reads State (Information)",
+			description: "Statement: Actor (Role, Function) writes and reads State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
 			changedAt: opts.fileDate
@@ -665,7 +670,7 @@ function BPMN2Specif( xmlString, opts ) {
 		statementTypes.push({
 			id: "ST-Writing",
 			title: "SpecIF:writes",
-			description: "Relation: Actor (Role, Function) writes State (Information)",
+			description: "Statement: Actor (Role, Function) writes State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
 			changedAt: opts.fileDate
@@ -673,7 +678,7 @@ function BPMN2Specif( xmlString, opts ) {
 		statementTypes.push({
 			id: "ST-Reading",
 			title: "SpecIF:reads",
-			description: "Relation: Actor (Role, Function) reads State (Information)",
+			description: "Statement: Actor (Role, Function) reads State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
 			changedAt: opts.fileDate
