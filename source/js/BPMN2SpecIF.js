@@ -8,16 +8,16 @@ function BPMN2Specif( xmlString, opts ) {
 	"use strict";
 	var parser = new DOMParser();
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
-	var typ, id, name, source, target, stereotype;
 	var elements = new Array();
-	var x, y;
+	var x,y,id;
 
 	x = xmlDoc.querySelectorAll("collaboration");
 	console.debug('x',x);
-	typ = x[0].nodeName; // Name des Diagramms
-	id = x[0].getAttribute("id");
-	name = opts.fileName.split(".")[0];
-	elements.push(resourceFinder(typ, id, name, source, target));
+	elements.push( resourceFinder({
+		typ: x[0].nodeName,  
+		id: x[0].getAttribute("id"), 
+		name: opts.fileName.split(".")[0] 
+	}) );
 
 	// Prozesse im Diagramm umwandeln:
 	y = xmlDoc.querySelectorAll("process"); 
@@ -36,19 +36,21 @@ function BPMN2Specif( xmlString, opts ) {
 	// Nachrichtenflüsse umwandeln:
 	x.forEach( function(xe) { 
 		if (xe.nodeName.includes("messageFlow")) {
-			typ = xe.nodeName;
-			id = xe.getAttribute("id");
-			name = xe.getAttribute("name");
-			source = xe.getAttribute("sourceRef");
-			target = xe.getAttribute("targetRef");
-			elements = elements.concat(statementFinder(elements, typ, id, name, source, target))
+			elements = elements.concat( statementFinder( elements, {
+				typ: xe.nodeName, 
+				id: xe.getAttribute("id"), 
+				name: xe.getAttribute("name"), 
+				source: xe.getAttribute("sourceRef"), 
+				target: xe.getAttribute("targetRef")
+			}) )
 		}
 	});
 
 	// Beziehungen zwischen Diagramm und Elementen herstellen:
 	id = 1;
 	elements.forEach( function(el) { 
-		if (el.resourceType == "RT-Act" || el.resourceType == "RT-Evt" || el.resourceType == "RT-Sta") {
+	//	if (el.resourceType == "RT-Act" || el.resourceType == "RT-Evt" || el.resourceType == "RT-Sta") {
+		if( ["RT-Act","RT-Evt","RT-Sta"].indexOf(el.resourceType)>-1 ) {
 			elements.push({
 				id: "Diagram_shows_" + id,
 				title: "SpecIF:shows",
@@ -68,38 +70,47 @@ function BPMN2Specif( xmlString, opts ) {
 // =======================================
 // called functions:	
 	function analyzeProcess(nodeList, participantId, name) {
-		var typ, id, name, source, target, stereotype;
-		var i, x;
-		var erg = new Array();
+		let x,i,id;
+		let erg = new Array();
 
 		if (name == "Hauptprozess") {
 			return erg
 		};
-		erg.push(resourceFinder(nodeList.nodeName, participantId, name, null, null, "participant"));
+		erg.push( resourceFinder({
+			typ: nodeList.nodeName, 
+			id: participantId, 
+			name: name, 
+		//	source: null, 
+		//	target: null, 
+			stereotype: "participant"
+		}) );
 
 		// Erstellen aller Ressourcen und Platzhaltern für Gateways:
 		x = nodeList.childNodes;
 		x.forEach( function(xe) {
 		//	if (xe.nodeName != "#text" && xe.nodeName != "bpmn:sequenceFlow" && xe.nodeName != "sequenceFlow" && xe.nodeName != "extensionElements" && xe.nodeName != "laneSet" && xe.nodeName != "documentation") {
 			if( ["#text","bpmn:sequenceFlow","sequenceFlow","extensionElements","laneSet","documentation"].indexOf(xe.nodeName)<0 ) {	
-				typ = xe.nodeName;
-				id = xe.getAttribute("id");
-				name = xe.getAttribute("name");
-				source = xe.getAttribute("sourceRef");
-				target = xe.getAttribute("targetRef");
-				erg.push(resourceFinder(typ, id, name, source, target, stereotype))
+				erg.push( resourceFinder({
+					typ: xe.nodeName, 
+					id: xe.getAttribute("id"), 
+					name: xe.getAttribute("name"), 
+					source: xe.getAttribute("sourceRef"), 
+					target: xe.getAttribute("targetRef")
+				//	stereotype
+				}) )
 			}
 		});
 
 		// Statements zwischen den Ressourcen und Platzhaltern für Gateways erstellen:
 		x.forEach( function(xe) {
 			if (xe.nodeName == "bpmn:sequenceFlow" || xe.nodeName == "sequenceFlow") {
-				typ = xe.nodeName;
-				id = xe.getAttribute("id");
-				name = xe.getAttribute("name");
-				source = xe.getAttribute("sourceRef");
-				target = xe.getAttribute("targetRef");
-				erg.push(statementFinder(erg, typ, id, name, source, target))
+				erg.push( statementFinder( erg, {
+					typ: xe.nodeName, 
+					id: xe.getAttribute("id"), 
+					name: xe.getAttribute("name"), 
+					source: xe.getAttribute("sourceRef"), 
+					target: xe.getAttribute("targetRef")
+				}) )
 			}
 		});
 
@@ -126,36 +137,35 @@ function BPMN2Specif( xmlString, opts ) {
 	}
 
 	// BPMN-Elemente (außer verbindende Objekte) in SpecIF Ressourcen übersetzen:
-	function resourceFinder(typ, id, name, source, target, stereotype) {
+	function resourceFinder(params) {  // {typ, id, name, source, target, stereotype}
 		// Anpassung für BPMN.io, da dort bpmn: im Tag verwendet wird
-		if (typ.includes("bpmn:")) { 
-			typ = typ.split(":")[1]
+		if (params.typ.includes("bpmn:")) { 
+			params.typ = params.typ.split(":")[1]
 		};
-		if (typeof(stereotype) == "undefined") {
-			stereotype = typ
+		if (typeof(params.stereotype) == "undefined") {
+			params.stereotype = params.typ
 		};
 
-		switch (typ) {
+		switch (params.typ) {
 			case "collaboration":
-				var properties = [{
-					title: "dcterms:title",
-					propertyType: "PT-Pln-Name",
-					value: name
-				}, {
-					title: "SpecIF:Diagram",
-					propertyType: "PT-Pln-Diagram",
-					value: "<div><p> Dies ist der hochgeladene BPMN-Prozess" +
-						" </p><p class=\"inline-label\"> Model View: </p><div class=\"forImage\" style=\"max-width: 600px;\" > <object " +
-						"data=\"BusinessProcess.svg\" type=\"image/svg+xml\" >BusinessProcess</object></div></div>"
-				}, {
-					title: "SpecIF:Notation",
-					propertyType: "PT-Pln-Notation",
-					value: "BPMN 2.0 Process Diagram"
-				}];
 				return {
-					id: id,
-					title: name,
-					properties: properties,
+					id: params.id,
+					title: params.name,
+					properties: [{
+						title: "dcterms:title",
+						propertyType: "PT-Pln-Name",
+						value: params.name
+					}, {
+						title: "SpecIF:Diagram",
+						propertyType: "PT-Pln-Diagram",
+						value: "<div><p>Dies ist der geladene BPMN-Prozess" +
+							" </p><p class=\"inline-label\">Model View:</p><div class=\"forImage\" style=\"max-width: 600px;\" > <object " +
+							"data=\"BusinessProcess.svg\" type=\"image/svg+xml\" >BusinessProcess</object></div></div>"
+					}, {
+						title: "SpecIF:Notation",
+						propertyType: "PT-Pln-Notation",
+						value: "BPMN 2.0 Process Diagram"
+					}],
 					resourceType: "RT-Pln",
 					changedAt: opts.fileDate
 				};
@@ -163,19 +173,18 @@ function BPMN2Specif( xmlString, opts ) {
 			case "startEvent":
 			case "intermediateThrowEvent":
 			case "endEvent":
-				var properties = [{
-					title: "dcterms:title",
-					propertyType: "PT-Evt-Name",
-					value: name
-				}, {
-					title: "SpecIF:Stereotype",
-					propertyType: "PT-Evt-Stereotype",
-					value: stereotype
-				}];
 				return {
-					id: id,
-					title: name,
-					properties: properties,
+					id: params.id,
+					title: params.name,
+					properties: [{
+						title: "dcterms:title",
+						propertyType: "PT-Evt-Name",
+						value: params.name
+					}, {
+						title: "SpecIF:Stereotype",
+						propertyType: "PT-Evt-Stereotype",
+						value: params.stereotype
+					}],
 					resourceType: "RT-Evt",
 					changedAt: opts.fileDate
 				};
@@ -184,45 +193,44 @@ function BPMN2Specif( xmlString, opts ) {
 			case "process":
 			case "task":
 			case "userTask":
-				var properties = [{
-					title: "dcterms:title",
-					propertyType: "PT-Act-Name",
-					value: name
-				}, {
-					title: "SpecIF:Stereotype",
-					propertyType: "PT-Act-Stereotype",
-					value: stereotype
-				}];
 				return {
-					id: id,
-					title: name,
-					properties: properties,
+					id: params.id,
+					title: params.name,
+					properties: [{
+						title: "dcterms:title",
+						propertyType: "PT-Act-Name",
+						value: params.name
+					}, {
+						title: "SpecIF:Stereotype",
+						propertyType: "PT-Act-Stereotype",
+						value: params.stereotype
+					}],
 					resourceType: "RT-Act",
 					changedAt: opts.fileDate
 				};
 
 			case "dataObjectReference":
-				var properties = [{
-					title: "dcterms:title",
-					propertyType: "PT-Sta-Name",
-					value: name
-				}, {
-					title: "SpecIF:Stereotype",
-					propertyType: "PT-Sta-Stereotype",
-					value: stereotype
-				}];
+			case "dataStoreReference":
 				return {
-					id: id,
-					title: name,
-					properties: properties,
+					id: params.id,
+					title: params.name,
+					properties: [{
+						title: "dcterms:title",
+						propertyType: "PT-Sta-Name",
+						value: params.name
+					}, {
+						title: "SpecIF:Stereotype",
+						propertyType: "PT-Sta-Stereotype",
+						value: params.stereotype
+					}],
 					resourceType: "RT-Sta",
 					changedAt: opts.fileDate
 				};
 
 			case "parallelGateway":
 				return {
-					id: id,
-					title: name,
+					id: params.id,
+					title: params.name,
 					incoming: [],
 					outgoing: [],
 					resourceType: "parallelGateway",
@@ -231,8 +239,8 @@ function BPMN2Specif( xmlString, opts ) {
 
 			case "exclusiveGateway":
 				return {
-					id: id,
-					title: name,
+					id: params.id,
+					title: params.name,
 					incoming: [],
 					outgoing: [],
 					resourceType: "exklusiveGateway",
@@ -245,35 +253,44 @@ function BPMN2Specif( xmlString, opts ) {
 	}
 
 	// Nachrichten- oder Sequenzfluss in SpecIF-Elemente übersetzen:
-	function statementFinder(elements, typ, id, name, source, target) {
-		if (typ.includes("bpmn:")) {
-			typ = typ.split(":")[1]
-		}
+	function statementFinder( elements, params ) {  // {typ, id, name, source, target}
+		if (params.typ.includes("bpmn:")) { 
+			params.typ = params.typ.split(":")[1]
+		};
 		var subject = elements.find(function(resource) {
-			return resource.id == source
+			return resource.id == params.source
 		});
 		var object = elements.find(function(resource) {
-			return resource.id == target
+			return resource.id == params.target
 		});
+		if( !subject || !object ) 
+			return 'unknown model-element configuration';
 
-		switch (typ) {
+		switch (params.typ) {  
 			case "messageFlow":
 				var erg = [];
-				erg.push(resourceFinder("dataObjectReference", id + "_1", name, null, null, "messageFlow"));
+				erg.push( resourceFinder({
+					typ: "dataObjectReference", 
+					id: params.id + "_1", 
+					name: params.name, 
+			//		source: null, 
+			//		target: null, 
+					stereotype: params.typ
+				}) );
 				erg.push({
-					id: id + "_2",
+					id: params.id + "_2",
 					title: "SpecIF:writes",
 					statementType: "ST-Writing",
 					subject: subject.id,
-					object: id + "_1",
+					object: params.id + "_1",
 					changedAt: opts.fileDate
 				});
 				erg.push({
-					id: id + "_3",
+					id: params.id + "_3",
 					title: "SpecIF:reads",
 					statementType: "ST-Reading",
 					subject: object.id,
-					object: id + "_1",
+					object: params.id + "_1",
 					changedAt: opts.fileDate
 				});
 
@@ -290,7 +307,7 @@ function BPMN2Specif( xmlString, opts ) {
 						title: "SpecIF:contains",
 						statementType: "ST-Containment",
 						subject: subject.id,
-						object: id + "_1",
+						object: params.id + "_1",
 						changedAt: opts.fileDate
 					})
 				} else {
@@ -311,7 +328,7 @@ function BPMN2Specif( xmlString, opts ) {
 						title: "SpecIF:contains",
 						statementType: "ST-Containment",
 						subject: participant.id,
-						object: id + "_1",
+						object: params.id + "_1",
 						changedAt: opts.fileDate
 					})
 				};
@@ -327,7 +344,7 @@ function BPMN2Specif( xmlString, opts ) {
 						title: "SpecIF:contains",
 						statementType: "ST-Containment",
 						subject: object.id,
-						object: id + "_1",
+						object: params.id + "_1",
 						changedAt: opts.fileDate
 					})
 				} else {
@@ -349,16 +366,17 @@ function BPMN2Specif( xmlString, opts ) {
 						title: "SpecIF:contains",
 						statementType: "ST-Containment",
 						subject: participant.id,
-						object: id + "_1",
+						object: params.id + "_1",
 						changedAt: opts.fileDate
 					})
 				};
 				return erg;
 
 			case "sequenceFlow":
+				console.debug('#',subject,object,params)
 				if (subject.resourceType == "RT-Act" && object.resourceType == "RT-Act") {
 					return {
-						id: id,
+						id: params.id,
 						title: "SpecIF:precedes",
 						statementType: "ST-Preceding",
 						subject: subject.id,
@@ -368,7 +386,7 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 				if ((subject.resourceType == "RT-Act" || subject.resourceType == "RT-Evt") && object.resourceType == "RT-Evt") {
 					return {
-						id: id,
+						id: params.id,
 						title: "SpecIF:signals",
 						statementType: "ST-Signalling",
 						subject: subject.id,
@@ -378,7 +396,7 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 				if (subject.resourceType == "RT-Evt" && object.resourceType == "RT-Act") {
 					return {
-						id: id,
+						id: params.id,
 						title: "SpecIF:triggers",
 						statementType: "ST-Triggering",
 						subject: subject.id,
@@ -388,8 +406,8 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 				if (subject.resourceType == "parallelGateway" || subject.resourceType == "exklusiveGateway") {
 					subject.outgoing.push({
-						id: id,
-						title: name,
+						id: params.id,
+						title: params.name,
 						statementType: "gatewayFlow",
 						subject: subject.id,
 						object: object.id,
@@ -398,8 +416,8 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 				if (object.resourceType == "parallelGateway" || object.resourceType == "exklusiveGateway") {
 					object.incoming.push({
-						id: id,
-						title: name,
+						id: params.id,
+						title: params.name,
 						statementType: "gatewayFlow",
 						subject: subject.id,
 						object: object.id,
@@ -408,8 +426,8 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 
 				return {
-					id: id,
-					title: name,
+					id: params.id,
+					title: params.name,
 					statementType: "gatewayFlow",
 					subject: subject.id,
 					object: object.id,
@@ -417,7 +435,7 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 
 			default:
-				return "unknown element";
+				return "unknown model-element"
 		}
 	}
 
@@ -429,26 +447,70 @@ function BPMN2Specif( xmlString, opts ) {
 			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { 
 				el.outgoing.forEach( function(outg) {
 					outg.subject = el.incoming[0].subject;
-					elements.push(statementFinder(elements, "sequenceFlow", outg.id, "", outg.subject, outg.object))
+					elements.push( statementFinder(elements, {
+						typ: "sequenceFlow", 
+						id: outg.id, 
+						name: "", 
+						source: outg.subject, 
+						target: outg.object
+					}) )
 				})
 			};
 
 			// Paralleles Gateway eingehend x -> 1
 			if (el.resourceType == "parallelGateway" && el.outgoing.length == 1) { 
-				elements.push(resourceFinder("task", el.id, "Warte auf vorherige Elemente", null, null, "parallelGateway"));
+				elements.push( resourceFinder({
+					typ: "task", 
+					id: el.id, 
+					name: "Warte auf vorherige Elemente", 
+				//	source: null, 
+				//	target: null, 
+					stereotype: "parallelGateway"
+				}) );
 				el.id = null;
-				elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[0].id, "", el.outgoing[0].subject, el.outgoing[0].object));
+				elements.push( statementFinder( elements, {
+					typ: "sequenceFlow", 
+					id: el.outgoing[0].id, 
+					name: "", 
+					source: el.outgoing[0].subject, 
+					target: el.outgoing[0].object
+				}) );
 				el.incoming.forEach( function(inco) {
-					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object))
+					elements.push( statementFinder( elements, {
+						typ: "sequenceFlow", 
+						id: inco.id, 
+						name: "", 
+						source: inco.subject, 
+						target: inco.object
+					}) )
 				})
 			};
 
 			// Exklusives Gateway ausgehend 1 -> x
 			if (el.resourceType == "exklusiveGateway" && el.incoming.length == 1) { 
 				for ( var j = 0; j < el.outgoing.length; j++) {
-					elements.push(resourceFinder("intermediateThrowEvent", el.id + "_" + j, el.outgoing[j].title, null, null, "exklusiveGateway"));
-					elements.push(statementFinder(elements, "sequenceFlow", el.incoming[0].id + "_" + j, "", el.incoming[0].subject, el.id + "_" + j));
-					elements.push(statementFinder(elements, "sequenceFlow", el.outgoing[j].id, "", el.id + "_" + j, el.outgoing[j].object))
+					elements.push( resourceFinder({
+						typ: "intermediateThrowEvent", 
+						id: el.id + "_" + j, 
+						name: el.outgoing[j].title, 
+					//	source: null, 
+					//	target: null, 
+						stereotype: "exklusiveGateway"
+					}) );
+					elements.push( statementFinder( elements, {
+						typ: "sequenceFlow", 
+						id: el.incoming[0].id + "_" + j, 
+						name: "", 
+						source: el.incoming[0].subject, 
+						target: el.id + "_" + j
+					}) );
+					elements.push( statementFinder( elements, {
+						typ: "sequenceFlow", 
+						id: el.outgoing[j].id, 
+						name: "", 
+						source: el.id + "_" + j, 
+						target: el.outgoing[j].object
+					}) )
 				}
 			};
 
@@ -456,7 +518,13 @@ function BPMN2Specif( xmlString, opts ) {
 			if (el.resourceType == "exklusiveGateway" && el.outgoing.length == 1) { 
 				el.incoming.forEach( function(inco) {
 					inco.object = el.outgoing[0].object;
-					elements.push(statementFinder(elements, "sequenceFlow", inco.id, "", inco.subject, inco.object))
+					elements.push( statementFinder( elements, {
+						typ: "sequenceFlow", 
+						id: inco.id, 
+						name: "", 
+						source: inco.subject, 
+						target: inco.object
+					}) )
 				})
 			}
 		});
@@ -716,7 +784,7 @@ function BPMN2Specif( xmlString, opts ) {
 			changedAt: opts.fileDate
 		});
 
-		// Benötigte Hierarchietypen definieren
+		// Benötigte Hierarchietypen definieren:
 		var hierarchyTypes = new Array(); 
 		hierarchyTypes.push({
 			id: "HT-BPMN-Prozessmodell",
@@ -725,7 +793,7 @@ function BPMN2Specif( xmlString, opts ) {
 			changedAt: opts.fileDate
 		});
 
-		// Resourcen und Statements einbinden
+		// Resourcen und Statements einbinden:
 		var resources = new Array(); 
 		var statements = new Array();
 
