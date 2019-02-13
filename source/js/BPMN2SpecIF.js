@@ -4,923 +4,1017 @@
 */
 
 // Durchlaufen der XML Datei und Überführen der Elemente in das SpecIF Format
+// Reference: https://docs.camunda.org/stable/api-references/bpmn20/
 function BPMN2Specif( xmlString, opts ) {
 	"use strict";
+	if( typeof(opts)!='object' ) return null;
+	if( !opts.title ) 					opts.title = opts.xmlName.split(".")[0];
+
+	if( !opts.strJoinExcGateway ) 		opts.strJoinExcGateway = "Joining Exclusive Gateway";
+	if( !opts.strJoinExcGatewayDesc ) 	opts.strJoinExcGatewayDesc = "<p>Wait for any <em>one</em> incoming connection to continue.</p>";
+	if( !opts.strJoinParGateway ) 		opts.strJoinParGateway = "Joining Parallel Gateway";
+	if( !opts.strJoinParGatewayDesc ) 	opts.strJoinParGatewayDesc = "<p>Wait for <em>all</em> incoming connections to continue.</p>";
+	if( !opts.strForkExcGateway ) 		opts.strForkExcGateway = "Forking Exclusive Gateway";
+	if( !opts.strForkExcGatewayDesc ) 	opts.strForkExcGatewayDesc = "<p>Evaluate the condidition and signal the respective event.</p>"
+	if( !opts.strForkParGateway ) 		opts.strForkParGateway = "Forking Parallel Gateway";
+	if( !opts.strForkParGatewayDesc ) 	opts.strForkParGatewayDesc = "<p>Forward control to <em>all</em> outgoing connections.</p>"
+	if( !opts.strTextAnnotation ) 		opts.strTextAnnotation = "Text Annotation"
+	
+	if( !opts.strGlossaryFolder ) 		opts.strGlossaryFolder = "Model Elements (Glossary)"
+	if( !opts.strActorFolder ) 			opts.strActorFolder = "Actors"
+	if( !opts.strStateFolder ) 			opts.strStateFolder = "States"
+	if( !opts.strEventFolder ) 			opts.strEventFolder = "Events"
+	if( !opts.strAnnotationFolder ) 	opts.strAnnotationFolder = "Text Annotations"
+	
 	var parser = new DOMParser();
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
-	var elements = new Array();
-	var x,y,id;
+	var model = {};
 
-	x = xmlDoc.querySelectorAll("collaboration");
-	console.debug('x',x);
-	elements.push( resourceFinder({
-		typ: x[0].nodeName,  
-		id: x[0].getAttribute("id"), 
-		name: opts.fileName.split(".")[0] 
-	}) );
+	// BPMN Collaborations list participants (with referenced processes) and messageFlows.
+	// Participants are source and/or target for message-flows (not the referenced processes),
+	// so we decide to transform the participants to SpecIF, but not the processes.
+	let x = xmlDoc.querySelectorAll("collaboration");
+	// There should be only one collaboration per BPMN file:
+	if( x.length>1 )
+		console.warn("Diagram with id ',model.id,' has more than one collaboration.");
+//	console.debug('collaboration',x);
 
-	// Prozesse im Diagramm umwandeln:
-	y = xmlDoc.querySelectorAll("process"); 
-	x = x[0].childNodes;
-	x.forEach( function(xe) {
-		if (xe.nodeName.includes("participant")) {
-			y.forEach( function(ye) {
-				if ( ye.nodeName.includes("process")
-					&& (xe.getAttribute("processRef") == ye.getAttribute("id")) ) {
-						elements = elements.concat(analyzeProcess(ye, xe.getAttribute("id"), xe.getAttribute("name")))
-				}
+	// The project's id and title:
+	model.id = x[0].getAttribute("id");
+	model.title = opts.title || x[0].nodeName;
+	model.description = opts.description;
+	model.specifVersion = "0.10.4";
+	model.dataTypes = DataTypes();
+	model.resourceClasses = ResourceClasses();
+	model.statementClasses = StatementClasses();
+	model.hierarchyClasses = HierarchyClasses();
+
+	// Reference used files,
+	// - the BPMN file:
+	model.files = [{
+		id: opts.xmlName,
+		blob: xmlString,
+		type: "application/bpmn+xml"
+	}];
+	// - an image of the process, if available:
+	if( opts.svgName )
+		model.files.push({
+			id: opts.svgName,
+		//	blob: ,
+			type: "image/svg+xml"
+		});
+	model.resources = Folders();
+	model.statements = [];
+
+	// 1. Represent the diagram itself:
+	const diagramId = 'D-' + model.id,
+		dg = opts.svgName?"<object data=\""+opts.svgName+"\" type=\"image/svg+xml\" >"+opts.svgName+"</object>"
+						:"<object data=\""+opts.xmlName+"\" type=\"application/bpmn+xml\" >"+opts.xmlName+"</object>";
+	model.resources.push({
+		id: diagramId,
+		title: model.title,
+		class: 'RT-Pln',
+		properties: [{
+			title: "dcterms:title",
+			class: "PT-Pln-Name",
+			value: model.title
+		}, {
+			title: "SpecIF:Diagram",
+			class: "PT-Pln-Diagram",
+			value: "<div><p class=\"inline-label\">Model View:</p><p>"+dg+"</p></div>"
+		}, {
+			title: "SpecIF:Notation",
+			class: "PT-Pln-Notation",
+			value: "BPMN 2.0 Process Diagram"
+		}],
+		changedAt: opts.xmlDate
+	});
+	
+	// 2. Analyse the 'collaboration' and get the participating processes plus the exchanged messages.
+	x[0].childNodes.forEach( function(el) {
+//		console.debug('collaboration element',el);
+		// quit, if the child node does not have a tag, e.g. if it is '#text':
+		if( !el.tagName ) return;
+		let tag = el.tagName.split(':').pop();	// tag without namespace
+		// The participating processes;
+		// we transform the participants with their id, but not the processes:
+		if (el.nodeName.includes("participant")) {
+			model.resources.push({
+				id: el.getAttribute("id"),
+				process: el.getAttribute("processRef"),
+				title: el.getAttribute("name"),
+				class: 'RT-Act',
+				properties: [{
+					title: "dcterms:title",
+					class: "PT-Act-Name",
+					value: el.getAttribute("name")
+				}, {
+					title: "SpecIF:Stereotype",
+					class: "PT-Act-Stereotype",
+					value: "BPMN:"+tag
+				}],
+				changedAt: opts.xmlDate
+			});
+		};
+		// The messages between the processes:
+		if (el.nodeName.includes("messageFlow")) {
+			// a. The message data (FMC:State):
+			model.resources.push({
+				id: el.getAttribute("id"),
+				title: el.getAttribute("name"),
+				class: 'RT-Sta',
+				properties: [{
+					title: "dcterms:title",
+					class: "PT-Sta-Name",
+					value: el.getAttribute("name")
+				}, {
+					title: "SpecIF:Stereotype",
+					class: "PT-Sta-Stereotype",
+					value: "BPMN:"+tag
+				}],
+				changedAt: opts.xmlDate
+			});
+			// b. We assume that the sourceRef and targetRef will be found later on.
+			// c. The writing relation (statement):
+			model.statements.push({
+				id: el.getAttribute("sourceRef")+'-S',
+				title: 'SpecIF:writes',
+				class: 'ST-writes',
+				subject: el.getAttribute("sourceRef"),
+				object: el.getAttribute("id"),
+				changedAt: opts.xmlDate
+			});
+			// d. The reading relation (statement):
+			// Todo: Is the signalling characteristic well covered? It is not just reading!
+			model.statements.push({
+				id: el.getAttribute("targetRef")+'-O',
+				title: 'SpecIF:reads',
+				class: 'ST-reads',
+				subject: el.getAttribute("targetRef"),
+				object: el.getAttribute("id"),
+				changedAt: opts.xmlDate
 			})
 		}
 	});
-
-	// Nachrichtenflüsse umwandeln:
-	x.forEach( function(xe) { 
-		if (xe.nodeName.includes("messageFlow")) {
-			elements = elements.concat( statementFinder( elements, {
-				typ: xe.nodeName, 
-				id: xe.getAttribute("id"), 
-				name: xe.getAttribute("name"), 
-				source: xe.getAttribute("sourceRef"), 
-				target: xe.getAttribute("targetRef")
-			}) )
-		}
-	});
-
-	// Beziehungen zwischen Diagramm und Elementen herstellen:
-	id = 1;
-	elements.forEach( function(el) { 
-	//	if (el.resourceType == "RT-Act" || el.resourceType == "RT-Evt" || el.resourceType == "RT-Sta") {
-		if( ["RT-Act","RT-Evt","RT-Sta"].indexOf(el.resourceType)>-1 ) {
-			elements.push({
-				id: "Diagram_shows_" + id,
-				title: "SpecIF:shows",
-				statementType: "ST-Visibility",
-				subject: elements[0].id,
-				object: el.id,
-				changedAt: opts.fileDate
+	// 3. Parse the processes.
+	// For SpecIF, the participant is declared the container for the processes' model-elements ... 
+	// and the BPMN 'processes' disappear from the semantics.
+	// ToDo: Remove any process having neither contained elements nor messageFlows (e.g. Bizagi 'Hauptprozess').
+	x = xmlDoc.querySelectorAll("process");
+	let taL = [];	// temporary list of text annotations
+	x.forEach( function(pr) {
+		// here, we look at a process:
+//		console.debug('process',pr);
+		// find the participant representing (or being responsible for) the process:
+		let pa = model.resources.find( function(e) { return e.process==pr.getAttribute('id') } );
+		// depending on the BPMN generator, the name is supplied in the participant or in the process definition ... or both.
+		pa.title = pa.title || pr.getAttribute('name');
+		let ctL = [],	// temporary list for containment relations between lanes and model-elements
+			gwL = [],	// temporary list for gateways needing some special attention later
+			tag, id, title, desc, cId, seqF;
+		// 4.1 First pass to get the lanes, which do not necessarily come first:
+		pr.childNodes.forEach( function(el) {
+			tag = el.nodeName.split(':').pop();	// tag without namespace
+//			console.debug('#1',tag);
+			switch(tag) {
+				case 'laneSet':
+					// 3.1 Get the laneSets/lanes with their model elements;
+					//    	note that a 'laneSet' is not mandatory, e.g. BPMNio does not necessarily provide any.
+					el.childNodes.forEach( function(el2) {
+						if( el2.nodeName.includes('lane') ) {
+							let elName = el2.getAttribute("name"),
+								el2Id = el2.getAttribute("id");
+							if( elName ) {
+								// store the lane as SpecIF:Role
+								model.resources.push({
+									id: el2Id,
+									title: elName,
+									class: 'RT-Act',
+									properties: [{
+										title: "dcterms:title",
+										class: "PT-Act-Name",
+										value: model.title
+									}, {
+										title: "SpecIF:Stereotype",
+										class: "PT-Act-Stereotype",
+										value: "BPMN:"+'lane'
+									}],
+									changedAt: opts.xmlDate
+								});
+								// store the containment relation for the lane:
+								model.statements.push({
+									id: pa.id + '-contains-' + el2Id,
+									title: 'SpecIF:contains',
+									class: 'ST-contains',
+									subject: pa.id,	// the process
+									object: el2Id,		// the lane
+									changedAt: opts.xmlDate
+								});
+								// temporarily store relations for the contained model-elements:
+								el.childNodes.forEach( function(el3) {
+									if( el3.nodeName.includes('flowNodeRef') ) {
+										let el3Id = el3.getAttribute("id");  
+										ctL.push({
+											class: 'ST-contains',
+											subject: el2Id, // the lane
+											object: el3Id		// the contained model-element
+										})
+									}
+								})
+							}
+						}
+					})
+				// skip all other tags for now.
+			}
+		});
+		// 4.2 Second pass to collect the model-elements:
+		let taCnt=1;
+		pr.childNodes.forEach( function(el) {
+			// quit, if the child node does not have a tag, e.g. if it is '#text':
+			if( !el.tagName ) return;
+			// else:
+			tag = el.tagName.split(':').pop();	// tag without namespace
+			// The laneSet has been analyzed, before:
+			if( tag=='laneSet' ) return;
+			// else:
+			id = el.getAttribute("id");
+			title = el.getAttribute("name");
+//			console.debug('#2',tag,id,title);
+			let found = false,
+				gw;
+			switch(tag) {
+				case 'sequenceFlow':
+					// will be analyzed in the third pass
+					break;
+				case 'task':
+				case 'userTask':
+				case 'scriptTask':
+				case 'callActivity':
+				case 'subProcess':
+					// store the model-element as FMC:Actor:
+					model.resources.push({
+						id: id,
+						title: title,
+						class: "RT-Act",
+						properties: [{
+							title: "dcterms:title",
+							class: "PT-Act-Name",
+							value: title
+						}, {
+							title: "SpecIF:Stereotype",
+							class: "PT-Act-Stereotype",
+							value: 'BPMN:'+tag
+						}],
+						changedAt: opts.xmlDate
+					});
+					// store the read/write associations:
+					el.childNodes.forEach( function(ch) {
+						if( !ch.tagName ) return;
+						if( ch.tagName.includes('dataInputAssociation') ) {
+							// find sourceRef:
+							ch.childNodes.forEach( function(ref) {
+//								console.debug('dataInputAssociation.childNode',ref);
+								if( !ref.tagName ) return;
+								if( ref.tagName.includes('sourceRef') ) {
+									let dS = ref.innerHTML
+									// store reading association:
+									model.statements.push({
+										id: id+'-reads-'+dS,
+										title: 'SpecIF:reads',
+										class: 'ST-reads',
+										subject: id,
+										object: dS,
+										changedAt: opts.xmlDate
+									})
+								}
+							});
+							return
+						};
+						if( ch.tagName.includes('dataOutputAssociation') ) {
+							// find targetRef:
+							ch.childNodes.forEach( function(ref) {
+//								console.debug('dataOutputAssociation.childNode',ref);
+								if( !ref.tagName ) return;
+								if( ref.tagName.includes('targetRef') ) {
+									let dS = ref.innerHTML
+									// store writing association:
+									model.statements.push({
+										id: id+'-writes-'+dS,
+										title: 'SpecIF:writes',
+										class: 'ST-writes',
+										subject: id,
+										object: dS,
+										changedAt: opts.xmlDate
+									})
+								}
+							})
+						}
+					});
+					found = true;
+					break;
+				case 'dataObjectReference':
+				case 'dataStoreReference':
+					// store the model-element as FMC:State,
+					// interestingly enough, the name and other information are properties of xxxReference:
+					model.resources.push({
+						id: id,
+						title: title,
+						class: "RT-Sta",
+						properties: [{
+							title: "dcterms:title",
+							class: "PT-Sta-Name",
+							value: title
+						}, {
+							title: "SpecIF:Stereotype",
+							class: "PT-Sta-Stereotype",
+							value: 'BPMN:'+tag
+						}],
+						changedAt: opts.xmlDate
+					});
+					found = true;
+					break;
+				case 'dataObject':
+				case 'dataStore':
+					// nothing
+					break;
+				case 'startEvent':
+				case 'intermediateThrowEvent':
+				case 'intermediateCatchEvent':
+				case 'endEvent':
+					// store the model-element as FMC:State:
+					model.resources.push({
+						id: id,
+						title: title,
+						class: "RT-Evt",
+						properties: [{
+							title: "dcterms:title",
+							class: "PT-Evt-Name",
+							value: title
+						}, {
+							title: "SpecIF:Stereotype",
+							class: "PT-Evt-Stereotype",
+							value: 'BPMN:'+tag
+						}],
+						changedAt: opts.xmlDate
+					});
+					found = true;
+					break;
+				case 'exclusiveGateway':
+				case 'parallelGateway':
+					gw = {id:id,class:tag,incoming:[],outgoing:[]};
+					el.childNodes.forEach( function(ch) {
+						if( !ch.tagName ) return;
+						if( ch.tagName.includes('incoming') )
+							gw.incoming.push( ch.innerHTML );
+						if( ch.tagName.includes('outgoing') )
+							gw.outgoing.push( ch.innerHTML );
+					});
+//					console.debug('Gateway',gw);
+					if( gw.incoming.length>1 && gw.outgoing.length>1 ) {
+						console.warn("Gateway with id ',id,' has multiple incoming AND multiple outgoing paths!");
+						return
+					};
+					if( gw.incoming.length==1 && gw.outgoing.length==1 ) {
+						console.warn("Gateway with id ',id,' has one incoming AND one outgoing path!");
+						return
+					};
+					// else:
+					// Transform all joining gateways to tasks:
+					if( gw.outgoing.length==1 ) {
+						if( tag=='exclusiveGateway' ) {
+							title = opts.strJoinExcGateway;
+							desc = opts.strJoinExcGatewayDesc
+						} else {
+							title = opts.strJoinParGateway;
+							desc = opts.strJoinParGatewayDesc
+						};
+						model.resources.push({
+							id: id,
+							title: title,
+							class: "RT-Act",
+							properties: [{
+								title: "dcterms:title",
+								class: "PT-Act-Name",
+								value: title
+							}, {
+								title: "dcterms:description",
+								class: "PT-Act-Description",
+								value: desc
+							}, {
+								title: "SpecIF:Stereotype",
+								class: "PT-Act-Stereotype",
+								value: 'BPMN:'+tag
+							}],
+							changedAt: opts.xmlDate
+						});
+						return
+					}; 
+					// else: gw.outgoing.length>1
+					if( tag=='parallelGateway' ) {
+						title = opts.strForkParGateway;
+						model.resources.push({
+							id: id,
+							title: title,
+							class: "RT-Act",
+							properties: [{
+								title: "dcterms:title",
+								class: "PT-Act-Name",
+								value: title
+							}, {
+								title: "dcterms:description",
+								class: "PT-Act-Description",
+								value: opts.strForkParGatewayDesc
+							}, {
+								title: "SpecIF:Stereotype",
+								class: "PT-Act-Stereotype",
+								value: 'BPMN:'+tag
+							}],
+							changedAt: opts.xmlDate
+						});
+						return
+					};
+					// else: 'exclusiveGateway' && gw.outgoing.length>1
+					gw.title = title;
+					title = opts.strForkExcGateway+(title? ': '+title : '');
+					model.resources.push({
+						id: id,
+						title: title,
+						class: "RT-Act",
+						properties: [{
+							title: "dcterms:title",
+							class: "PT-Act-Name",
+							value: title
+						}, {
+							title: "dcterms:description",
+							class: "PT-Act-Description",
+							value: opts.strForkExcGatewayDesc
+						}, {
+							title: "SpecIF:Stereotype",
+							class: "PT-Act-Stereotype",
+							value: 'BPMN:'+tag
+						}],
+						changedAt: opts.xmlDate
+					});
+					// list the gateway for postprocessing in the next pass:
+					gwL.push(gw);
+					break;
+				case 'textAnnotation':
+					// will be analyzed in the next pass
+					break; 
+				default:
+					console.warn('The BPMN element with tag ',tag,' and title ',title,' has not been transformed.')
+			};
+			// Add a containment relation for every transformed model-element:
+			if( found ) {
+				// look, whether the element is contained in a lane:
+				cId = ctL.find( function(s) {return s.object==id} );
+				// use the lane as container, if there is any, or the process otherwise:
+				cId = (cId? cId.subject : pa.id);
+				// store the containment relation:
+				model.statements.push({
+					id: cId+'-contains-'+id,
+					title: 'SpecIF:contains',
+					class: 'ST-contains',
+					subject: cId,
+					object: id,
+					changedAt: opts.xmlDate
+				})
+			}
+		});
+		// 4.3 Third pass to collect the text annotations:
+		let tL = xmlDoc.querySelectorAll("textAnnotation");
+		tL.forEach( function(ta,idx) {
+			id = ta.getAttribute("id");
+			title = opts.strTextAnnotation + (++idx>9? ' '+idx : ' 0'+idx);
+			// even though there should be only one sub-element:
+			ta.childNodes.forEach( function(txt) {
+				console.debug('textAnnotation.childNode',txt);
+				if( !txt.tagName ) return;
+				if( txt.tagName.includes('text') ) {
+					model.resources.push({
+						id: id,
+						title: title,
+						class: "RT-Nte",
+						properties: [{
+							title: "dcterms:title",
+							class: "PT-Nte-Name",
+							value: title
+						}, {
+							title: "dcterms:description",
+							class: "PT-Nte-Description",
+							value: txt.innerHTML
+						}],
+						changedAt: opts.xmlDate
+					});
+					// memorize all text annotations to include them in the hierarchy:
+					taL.push(id)
+				}
 			});
-			id++
-		}
+		})
+		// 4.4 Fourth pass to collect the relations between model-elements:
+		pr.childNodes.forEach( function(el) {
+			// quit, if the child node does not have a tag, e.g. it is '#text':
+			if( !el.tagName ) return;
+			// else:
+			tag = el.tagName.split(':').pop();	// tag without namespace
+			// quit, if it is a laneSet, as it would cause a runtime error below
+			// (it does not have the properties we try to obtain):
+			if( tag=='laneSet' ) return;
+			// else:
+			id = el.getAttribute("id");
+			title = el.getAttribute("name");
+//			console.debug('#3',tag,id,title);
+			switch(tag) {
+				case 'sequenceFlow':
+					// just the sequenceFlow, where the subject is a forking exclusive gateway, needs special attention:
+					let feG = itemById(gwL,el.getAttribute('sourceRef'));
+					if( feG ) {
+						// In case of a forking exclusive gateway, every outgoing connection is transformed
+						// to an event with a signal and trigger relation:
+						seqF = {
+							subject: feG,
+							object:  itemById(model.resources,el.getAttribute('targetRef'))
+						};
+						// a. store an event representing the case:
+						title = (seqF.subject.title? seqF.subject.title+' → ' : '')+title; // &larr; = &#8594;
+						model.resources.push({
+							id: id,
+							title: title,
+							class: "RT-Evt",
+							properties: [{
+								title: "dcterms:title",
+								class: "PT-Evt-Name",
+								value: title
+							}, {
+								title: "SpecIF:Stereotype",
+								class: "PT-Evt-Stereotype",
+								value: 'SpecIF:'+'Condition'
+							}],
+							changedAt: opts.xmlDate
+						});
+						// b. store the signal relation:
+						model.statements.push({
+							id: id+'-s',
+							title: "SpecIF:signals",
+							class: "ST-signals",
+							subject: seqF.subject.id,
+							object: id,
+							changedAt: opts.xmlDate
+						});
+						// c. store the trigger relation:
+						model.statements.push({
+							id: id+'-t',
+							title: "SpecIF:triggers",
+							class: "ST-triggers",
+							subject: id,
+							object: seqF.object.id,
+							changedAt: opts.xmlDate
+						});
+						return
+					};
+					// else:
+					seqF = {
+						subject: itemById(model.resources,el.getAttribute('sourceRef')),
+						object:  itemById(model.resources,el.getAttribute('targetRef'))
+					};
+					// none or one of the following conditions is true, so we can return right away:
+					if( seqF.subject.class=='RT-Act' && seqF.object.class=='RT-Act' ) {
+						model.statements.push({
+							id: id,
+							title: "SpecIF:precedes",
+							class: "ST-precedes",
+							subject: seqF.subject.id,
+							object: seqF.object.id,
+							changedAt: opts.xmlDate
+						});
+						return
+					};
+					if ((["RT-Act","RT-Evt"].indexOf(seqF.subject.class)>-1) && seqF.object.class=="RT-Evt") {
+						model.statements.push({
+							id: id,
+							title: "SpecIF:signals",
+							class: "ST-signals",
+							subject: seqF.subject.id,
+							object: seqF.object.id,
+							changedAt: opts.xmlDate
+						});
+						return
+					};
+					// else: seqF.subject.class=="RT-Evt" && seqF.object.class=="RT-Act"
+					model.statements.push({
+						id: id,
+						title: "SpecIF:triggers",
+						class: "ST-triggers",
+						subject: seqF.subject.id,
+						object: seqF.object.id,
+						changedAt: opts.xmlDate
+					});
+					break;
+				case 'association':
+					model.statements.push({
+						id: id,
+						title: "SpecIF:refersTo",
+						class: "ST-refersTo",
+						subject: el.getAttribute('targetRef'),
+						object: el.getAttribute('sourceRef'),
+						changedAt: opts.xmlDate
+					});
+				// all other tags (should ;-) have been processed before
+			}
+		})
 	});
 
-//	var clonedArray = JSON.parse(JSON.stringify(elements));
-	console.debug(elements);
-	return modelBuilder( elements, opts );
-
+	// 5. Add the 'diagram shows model-element' statements:
+	model.resources.forEach( function(r) {
+		// only certain resources are model-elements:
+		if( ['RT-Act','RT-Sta','RT-Evt'].indexOf(r.class)>-1 ) {
+			model.statements.push({
+				id: model.id+'-shows-'+r.id,
+				title: 'SpecIF:shows',
+				class: 'ST-shows',
+				subject: diagramId,
+				object: r.id,
+				changedAt: opts.xmlDate
+			})
+		}
+	});
+	// 6. The hierarchy with pointers to all resources:
+	function NodeList(res) {
+		// 6.1 first add the folders:
+		let nL = [{
+			id: "N-Diagram",
+			resource: diagramId,
+			changedAt: opts.xmlDate
+		},{
+			id: "N-FolderGlossary",
+			resource: "FolderGlossary",
+			nodes: [{
+				id: "N-FolderAct",
+				resource: "FolderAct",
+				nodes: [],
+				changedAt: opts.xmlDate
+			},{
+				id: "N-FolderSta",
+				resource: "FolderSta",
+				nodes: [],
+				changedAt: opts.xmlDate
+			},{
+				id: "N-FolderEvt",
+				resource: "FolderEvt",
+				nodes: [],
+				changedAt: opts.xmlDate
+			}],
+			changedAt: opts.xmlDate
+		}];
+		// 6.2 Add Actors, States and Events to the respective folders,
+		// in alphabetical order:
+		res.sort( function(bim, bam) {
+					bim = bim.title.toLowerCase();
+					bam = bam.title.toLowerCase();
+					return bim==bam ? 0 : (bim<bam ? -1 : 1) 
+		});
+		res.forEach( function(r) { 
+			let nd = {
+				id: "N-" + r.id,
+				resource: r.id,
+				changedAt: opts.xmlDate
+			};
+			// sort resources according to their type:
+			let idx = ["RT-Act","RT-Sta","RT-Evt"].indexOf( r.class );
+			if( idx>-1 )
+				nL[1].nodes[idx].nodes.push(nd)
+		});
+		if( taL.length<1 ) return nL;
+		// else:
+		// 6.3 Add text annotations:
+		nL.push({
+			id: "N-FolderNte",
+			resource: "FolderNte",
+			nodes: [],
+			changedAt: opts.xmlDate
+		});
+		taL.forEach( function(r) { 
+			nL[2].nodes.push({
+				id: "N-" + r,
+				resource: r,
+				changedAt: opts.xmlDate
+			})
+		});
+		return nL
+	}
+	model.hierarchies = [{
+		id: "outline",
+		title: model.title,
+		class: "HT-Processmodel",
+		nodes: NodeList(model.resources),
+		changedAt: opts.xmlDate
+	}]
+	
+//	console.debug('model',model);
+	return model;
+	
 // =======================================
 // called functions:	
-	function analyzeProcess(nodeList, participantId, name) {
-		let x,i,id;
-		let erg = new Array();
 
-		if (name == "Hauptprozess") {
-			return erg
-		};
-		erg.push( resourceFinder({
-			typ: nodeList.nodeName, 
-			id: participantId, 
-			name: name, 
-		//	source: null, 
-		//	target: null, 
-			stereotype: "participant"
-		}) );
-
-		// Erstellen aller Ressourcen und Platzhaltern für Gateways:
-		x = nodeList.childNodes;
-		x.forEach( function(xe) {
-		//	if (xe.nodeName != "#text" && xe.nodeName != "bpmn:sequenceFlow" && xe.nodeName != "sequenceFlow" && xe.nodeName != "extensionElements" && xe.nodeName != "laneSet" && xe.nodeName != "documentation") {
-			if( ["#text","bpmn:sequenceFlow","sequenceFlow","extensionElements","laneSet","documentation"].indexOf(xe.nodeName)<0 ) {	
-				erg.push( resourceFinder({
-					typ: xe.nodeName, 
-					id: xe.getAttribute("id"), 
-					name: xe.getAttribute("name"), 
-					source: xe.getAttribute("sourceRef"), 
-					target: xe.getAttribute("targetRef")
-				//	stereotype
-				}) )
-			}
-		});
-
-		// Statements zwischen den Ressourcen und Platzhaltern für Gateways erstellen:
-		x.forEach( function(xe) {
-			if (xe.nodeName == "bpmn:sequenceFlow" || xe.nodeName == "sequenceFlow") {
-				erg.push( statementFinder( erg, {
-					typ: xe.nodeName, 
-					id: xe.getAttribute("id"), 
-					name: xe.getAttribute("name"), 
-					source: xe.getAttribute("sourceRef"), 
-					target: xe.getAttribute("targetRef")
-				}) )
-			}
-		});
-
-		// Gateways auflösen:
-		transformGateways(erg);  
-
-		// Beziehungen zwischen Prozess Elementen herstellen:
-		id = 1;
-		for (i = 1; i < erg.length; i++) { 
-		//	if (erg[i].resourceType == "RT-Act" || erg[i].resourceType == "RT-Evt" || erg[i].resourceType == "RT-Sta") {
-			if( ["RT-Act","RT-Evt","RT-Sta"].indexOf(erg[i].resourceType)>-1 ) {
-				erg.push({
-					id: erg[0].id + "_contains_" + id,
-					title: "SpecIF:contains",
-					statementType: "ST-Containment",
-					subject: erg[0].id,
-					object: erg[i].id,
-					changedAt: opts.fileDate
-				});
-				id++
-			}
-		};
-		return erg
-	}
-
-	// BPMN-Elemente (außer verbindende Objekte) in SpecIF Ressourcen übersetzen:
-	function resourceFinder(params) {  // {typ, id, name, source, target, stereotype}
-		// Anpassung für BPMN.io, da dort bpmn: im Tag verwendet wird
-		if (params.typ.includes("bpmn:")) { 
-			params.typ = params.typ.split(":")[1]
-		};
-		if (typeof(params.stereotype) == "undefined") {
-			params.stereotype = params.typ
-		};
-
-		switch (params.typ) {
-			case "collaboration":
-				return {
-					id: params.id,
-					title: params.name,
-					properties: [{
-						title: "dcterms:title",
-						propertyType: "PT-Pln-Name",
-						value: params.name
-					}, {
-						title: "SpecIF:Diagram",
-						propertyType: "PT-Pln-Diagram",
-						value: "<div><p>Dies ist der geladene BPMN-Prozess" +
-							" </p><p class=\"inline-label\">Model View:</p><div class=\"forImage\" style=\"max-width: 600px;\" > <object " +
-							"data=\"BusinessProcess.svg\" type=\"image/svg+xml\" >BusinessProcess</object></div></div>"
-					}, {
-						title: "SpecIF:Notation",
-						propertyType: "PT-Pln-Notation",
-						value: "BPMN 2.0 Process Diagram"
-					}],
-					resourceType: "RT-Pln",
-					changedAt: opts.fileDate
-				};
-
-			case "startEvent":
-			case "intermediateThrowEvent":
-			case "endEvent":
-				return {
-					id: params.id,
-					title: params.name,
-					properties: [{
-						title: "dcterms:title",
-						propertyType: "PT-Evt-Name",
-						value: params.name
-					}, {
-						title: "SpecIF:Stereotype",
-						propertyType: "PT-Evt-Stereotype",
-						value: params.stereotype
-					}],
-					resourceType: "RT-Evt",
-					changedAt: opts.fileDate
-				};
-
-			case "participant":
-			case "process":
-			case "task":
-			case "userTask":
-				return {
-					id: params.id,
-					title: params.name,
-					properties: [{
-						title: "dcterms:title",
-						propertyType: "PT-Act-Name",
-						value: params.name
-					}, {
-						title: "SpecIF:Stereotype",
-						propertyType: "PT-Act-Stereotype",
-						value: params.stereotype
-					}],
-					resourceType: "RT-Act",
-					changedAt: opts.fileDate
-				};
-
-			case "dataObjectReference":
-			case "dataStoreReference":
-				return {
-					id: params.id,
-					title: params.name,
-					properties: [{
-						title: "dcterms:title",
-						propertyType: "PT-Sta-Name",
-						value: params.name
-					}, {
-						title: "SpecIF:Stereotype",
-						propertyType: "PT-Sta-Stereotype",
-						value: params.stereotype
-					}],
-					resourceType: "RT-Sta",
-					changedAt: opts.fileDate
-				};
-
-			case "parallelGateway":
-				return {
-					id: params.id,
-					title: params.name,
-					incoming: [],
-					outgoing: [],
-					resourceType: "parallelGateway",
-					changedAt: opts.fileDate
-				};
-
-			case "exclusiveGateway":
-				return {
-					id: params.id,
-					title: params.name,
-					incoming: [],
-					outgoing: [],
-					resourceType: "exklusiveGateway",
-					changedAt: opts.fileDate
-				};
-
-			default:
-				return "unknown element";
-		}
-	}
-
-	// Nachrichten- oder Sequenzfluss in SpecIF-Elemente übersetzen:
-	function statementFinder( elements, params ) {  // {typ, id, name, source, target}
-		if (params.typ.includes("bpmn:")) { 
-			params.typ = params.typ.split(":")[1]
-		};
-		var subject = elements.find(function(resource) {
-			return resource.id == params.source
-		});
-		var object = elements.find(function(resource) {
-			return resource.id == params.target
-		});
-		if( !subject || !object ) 
-			return 'unknown model-element configuration';
-
-		switch (params.typ) {  
-			case "messageFlow":
-				var erg = [];
-				erg.push( resourceFinder({
-					typ: "dataObjectReference", 
-					id: params.id + "_1", 
-					name: params.name, 
-			//		source: null, 
-			//		target: null, 
-					stereotype: params.typ
-				}) );
-				erg.push({
-					id: params.id + "_2",
-					title: "SpecIF:writes",
-					statementType: "ST-Writing",
-					subject: subject.id,
-					object: params.id + "_1",
-					changedAt: opts.fileDate
-				});
-				erg.push({
-					id: params.id + "_3",
-					title: "SpecIF:reads",
-					statementType: "ST-Reading",
-					subject: object.id,
-					object: params.id + "_1",
-					changedAt: opts.fileDate
-				});
-
-				var statementCount, participant;
-				statementCount = 0;
-				if (subject.properties[1].value == "participant") { // Ist das Subjekt ein Pool bzw. Participant?
-					elements.forEach( function(el) {
-						if (el.title == "SpecIF:contains" && el.subject == subject.id) {
-							statementCount++;
-						}
-					});
-					erg.push({
-						id: subject.id + "_contains_" + (statementCount + 1),
-						title: "SpecIF:contains",
-						statementType: "ST-Containment",
-						subject: subject.id,
-						object: params.id + "_1",
-						changedAt: opts.fileDate
-					})
-				} else {
-					elements.forEach( function(el) {
-						if (el.title == "SpecIF:contains" && el.object == subject.id) {
-							participant = elements.find(function(resource) {
-								return resource.id == el.subject;
-							})
-						}
-					});
-					elements.forEach( function(el) {
-						if (el.title == "SpecIF:contains" && el.subject == participant.id) {
-							statementCount++
-						}
-					});
-					erg.push({
-						id: participant.id + "_contains_" + (statementCount + 1),
-						title: "SpecIF:contains",
-						statementType: "ST-Containment",
-						subject: participant.id,
-						object: params.id + "_1",
-						changedAt: opts.fileDate
-					})
-				};
-				statementCount = 0;
-				if (object.properties[1].value == "participant") { // Ist das Objekt ein Pool bzw. Participant?
-					elements.forEach( function(el) {
-						if (el.title == "SpecIF:contains" && el.subject == object.id) {
-							statementCount++
-						}
-					});
-					erg.push({
-						id: object.id + "_contains_" + (statementCount + 1),
-						title: "SpecIF:contains",
-						statementType: "ST-Containment",
-						subject: object.id,
-						object: params.id + "_1",
-						changedAt: opts.fileDate
-					})
-				} else {
-					// Schleife zum Finden des Teilnehmers bzw. Pools
-					elements.forEach( function(el) { 
-						if (el.title == "SpecIF:contains" && el.object == object.id) {
-							participant = elements.find(function(resource) {
-								return resource.id == el.subject
-							})
-						}
-					});
-					elements.forEach( function(el) {
-						if (el.title == "SpecIF:contains" && el.subject == participant.id) {
-							statementCount++
-						}
-					});
-					erg.push({
-						id: participant.id + "_contains_" + (statementCount + 1),
-						title: "SpecIF:contains",
-						statementType: "ST-Containment",
-						subject: participant.id,
-						object: params.id + "_1",
-						changedAt: opts.fileDate
-					})
-				};
-				return erg;
-
-			case "sequenceFlow":
-				console.debug('#',subject,object,params)
-				if (subject.resourceType == "RT-Act" && object.resourceType == "RT-Act") {
-					return {
-						id: params.id,
-						title: "SpecIF:precedes",
-						statementType: "ST-Preceding",
-						subject: subject.id,
-						object: object.id,
-						changedAt: opts.fileDate
-					}
-				};
-				if ((subject.resourceType == "RT-Act" || subject.resourceType == "RT-Evt") && object.resourceType == "RT-Evt") {
-					return {
-						id: params.id,
-						title: "SpecIF:signals",
-						statementType: "ST-Signalling",
-						subject: subject.id,
-						object: object.id,
-						changedAt: opts.fileDate
-					}
-				};
-				if (subject.resourceType == "RT-Evt" && object.resourceType == "RT-Act") {
-					return {
-						id: params.id,
-						title: "SpecIF:triggers",
-						statementType: "ST-Triggering",
-						subject: subject.id,
-						object: object.id,
-						changedAt: opts.fileDate
-					}
-				};
-				if (subject.resourceType == "parallelGateway" || subject.resourceType == "exklusiveGateway") {
-					subject.outgoing.push({
-						id: params.id,
-						title: params.name,
-						statementType: "gatewayFlow",
-						subject: subject.id,
-						object: object.id,
-						changedAt: opts.fileDate
-					})
-				};
-				if (object.resourceType == "parallelGateway" || object.resourceType == "exklusiveGateway") {
-					object.incoming.push({
-						id: params.id,
-						title: params.name,
-						statementType: "gatewayFlow",
-						subject: subject.id,
-						object: object.id,
-						changedAt: opts.fileDate
-					})
-				};
-
-				return {
-					id: params.id,
-					title: params.name,
-					statementType: "gatewayFlow",
-					subject: subject.id,
-					object: object.id,
-					changedAt: opts.fileDate
-				};
-
-			default:
-				return "unknown model-element"
-		}
-	}
-
-	// Ressourcen und Statements aus den Gateways und ihren Sequenzflüssen herstellen
-	// ! Funktioniert nicht bei direkt aufeinanderfolgenden Gateways !
-	function transformGateways(elements) {
-		elements.forEach( function(el) {
-			// Paralleles Gateway ausgehend 1 -> x
-			if (el.resourceType == "parallelGateway" && el.incoming.length == 1) { 
-				el.outgoing.forEach( function(outg) {
-					outg.subject = el.incoming[0].subject;
-					elements.push( statementFinder(elements, {
-						typ: "sequenceFlow", 
-						id: outg.id, 
-						name: "", 
-						source: outg.subject, 
-						target: outg.object
-					}) )
-				})
-			};
-
-			// Paralleles Gateway eingehend x -> 1
-			if (el.resourceType == "parallelGateway" && el.outgoing.length == 1) { 
-				elements.push( resourceFinder({
-					typ: "task", 
-					id: el.id, 
-					name: "Warte auf vorherige Elemente", 
-				//	source: null, 
-				//	target: null, 
-					stereotype: "parallelGateway"
-				}) );
-				el.id = null;
-				elements.push( statementFinder( elements, {
-					typ: "sequenceFlow", 
-					id: el.outgoing[0].id, 
-					name: "", 
-					source: el.outgoing[0].subject, 
-					target: el.outgoing[0].object
-				}) );
-				el.incoming.forEach( function(inco) {
-					elements.push( statementFinder( elements, {
-						typ: "sequenceFlow", 
-						id: inco.id, 
-						name: "", 
-						source: inco.subject, 
-						target: inco.object
-					}) )
-				})
-			};
-
-			// Exklusives Gateway ausgehend 1 -> x
-			if (el.resourceType == "exklusiveGateway" && el.incoming.length == 1) { 
-				for ( var j = 0; j < el.outgoing.length; j++) {
-					elements.push( resourceFinder({
-						typ: "intermediateThrowEvent", 
-						id: el.id + "_" + j, 
-						name: el.outgoing[j].title, 
-					//	source: null, 
-					//	target: null, 
-						stereotype: "exklusiveGateway"
-					}) );
-					elements.push( statementFinder( elements, {
-						typ: "sequenceFlow", 
-						id: el.incoming[0].id + "_" + j, 
-						name: "", 
-						source: el.incoming[0].subject, 
-						target: el.id + "_" + j
-					}) );
-					elements.push( statementFinder( elements, {
-						typ: "sequenceFlow", 
-						id: el.outgoing[j].id, 
-						name: "", 
-						source: el.id + "_" + j, 
-						target: el.outgoing[j].object
-					}) )
-				}
-			};
-
-			// Exklusives Gateway eingehend x -> 1
-			if (el.resourceType == "exklusiveGateway" && el.outgoing.length == 1) { 
-				el.incoming.forEach( function(inco) {
-					inco.object = el.outgoing[0].object;
-					elements.push( statementFinder( elements, {
-						typ: "sequenceFlow", 
-						id: inco.id, 
-						name: "", 
-						source: inco.subject, 
-						target: inco.object
-					}) )
-				})
-			}
-		});
-
-		// Gateways entfernen:
-		let i = 0;
-		while ( i<elements.length ) {
-			if (elements[i].statementType == "gatewayFlow" || elements[i].resourceType == "parallelGateway" || elements[i].resourceType == "exklusiveGateway") 
-				elements.splice(i, 1)
-			else
-				i++
-		}
-	}
-
-	// SpecIF Projekt im JSON Format bauen:
-	function modelBuilder( elements, opts ) {
-		var d = new Date();
-		var model = new Object();	// process model in SpecIF/JSON format
-		model.id = "BPMN-" + (d.getDate() + "" + d.getMonth() + "" + d.getFullYear() + "" + d.getHours() + "" + d.getMinutes() + "" + d.getSeconds());
-		model.title = opts.title;
-		model.description = opts.description;
-		model.specifVersion = "0.10.3";
-
-		// Benötigte Datentypen definieren
-		var dataTypes = new Array(); 
-		dataTypes.push({
+	// The dataTypes:
+	function DataTypes() {
+		return [{
 			id: "DT-Integer",
 			title: "Integer",
 			type: "xs:integer",
 			min: -32768,
 			max: 32767,
-			changedAt: opts.fileDate
-		});
-		dataTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "DT-ShortString",
 			title: "String[96]",
 			description: "String with length 96",
 			type: "xs:string",
 			maxLength: 96,
-			changedAt: opts.fileDate
-		});
-		dataTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "DT-String",
 			title: "String[1024]",
 			description: "String with length 1024",
 			type: "xs:string",
 			maxLength: 1024,
-			changedAt: opts.fileDate
-		});
-		dataTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "DT-formattedText",
 			title: "xhtml[1024]",
 			description: "Formatted String with length 1024",
 			type: "xhtml",
 			maxLength: 1024,
-			changedAt: opts.fileDate
-		});
-
-		// Benötigte Ressourcentypen definieren:
-		var resourceTypes = new Array(); 
-		resourceTypes.push({
+			changedAt: opts.xmlDate
+		}]
+	}
+	
+	// The resource classes:
+	function ResourceClasses() {
+		return [{
 			id: "RT-Pln",
 			title: "SpecIF:Diagram",
 			description: "A 'Diagram' is a graphical model view with a specific communication purpose, e.g. a business process or system composition.",
-			propertyTypes: [{
-					id: "PT-Pln-Name",
-					title: "dcterms:title",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				},
-				{
-					id: "PT-Pln-Diagram",
-					title: "SpecIF:Diagram",
-					dataType: "DT-formattedText",
-					changedAt: opts.fileDate
-				},
-				{
-					id: "PT-Pln-Notation",
-					title: "SpecIF:Notation",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				}
-			],
+			propertyClasses: [{
+				id: "PT-Pln-Name",
+				title: "dcterms:title",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Pln-Diagram",
+				title: "SpecIF:Diagram",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Pln-Notation",
+				title: "SpecIF:Notation",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			}],
 			icon: "&#9635;",
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "RT-Act",
 			title: "FMC:Actor",
 			description: "An 'Actor' is a fundamental model element type representing an active entity, be it an activity, a process step, a function, a system component or a role.",
-			propertyTypes: [{
-					id: "PT-Act-Name",
-					title: "dcterms:title",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				},
-				{
-					id: "PT-Act-Stereotype",
-					title: "SpecIF:Stereotype",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				}
-			],
+			propertyClasses: [{
+				id: "PT-Act-Name",
+				title: "dcterms:title",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Act-Description",
+				title: "dcterms:description",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Act-Stereotype",
+				title: "SpecIF:Stereotype",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			}],
 			icon: "&#9632;",
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "RT-Sta",
 			title: "FMC:State",
 			description: "A 'State' is a fundamental model element type representing a passive entity, be it a value, a condition, an information storage or even a physical shape.",
-			propertyTypes: [{
-					id: "PT-Sta-Name",
-					title: "dcterms:title",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				},
-				{
-					id: "PT-Sta-Stereotype",
-					title: "SpecIF:Stereotype",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				}
-			],
+			propertyClasses: [{
+				id: "PT-Sta-Name",
+				title: "dcterms:title",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Sta-Description",
+				title: "dcterms:description",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Sta-Stereotype",
+				title: "SpecIF:Stereotype",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			}],
 			icon: "&#9679;",
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "RT-Evt",
 			title: "FMC:Event",
 			description: "An 'Event' is a fundamental model element type representing a time reference, a change in condition/value or more generally a synchronisation primitive.",
-			propertyTypes: [{
-					id: "PT-Evt-Name",
-					title: "dcterms:title",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				},
-				{
-					id: "PT-Evt-Stereotype",
-					title: "SpecIF:Stereotype",
-					dataType: "DT-ShortString",
-					changedAt: opts.fileDate
-				}
-			],
-			icon: "&#9830;",
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
-			id: "RT-Not",
-			title: "SpecIF:Note",
-			description: "A 'Note' is additional information by the author referring to any resource.",
-			propertyTypes: [{
-				id: "PT-Not-Name",
+			propertyClasses: [{
+				id: "PT-Evt-Name",
 				title: "dcterms:title",
 				dataType: "DT-ShortString",
-				changedAt: opts.fileDate
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Evt-Description",
+				title: "dcterms:description",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Evt-Stereotype",
+				title: "SpecIF:Stereotype",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
 			}],
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
+			icon: "&#9830;",
+			changedAt: opts.xmlDate
+		},{
+			id: "RT-Nte",
+			title: "SpecIF:Note",
+			description: "A 'Note' is additional information by the author referring to any resource.",
+			propertyClasses: [{
+				id: "PT-Nte-Name",
+				title: "dcterms:title",
+				dataType: "DT-ShortString",
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Nte-Description",
+				title: "dcterms:description",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
+			}],
+			changedAt: opts.xmlDate
+		},{
 			id: "RT-Col",
 			title: "SpecIF:Collection",
 			description: "A 'Collection' is an arbitrary group of resources linked with a SpecIF:contains statement. It corresponds to a 'Group' in BPMN Diagrams.",
-			propertyTypes: [{
+			propertyClasses: [{
 				id: "PT-Col-Name",
 				title: "dcterms:title",
 				dataType: "DT-ShortString",
-				changedAt: opts.fileDate
+				changedAt: opts.xmlDate
 			}],
-			changedAt: opts.fileDate
-		});
-		resourceTypes.push({
+			changedAt: opts.xmlDate
+		},{
 			id: "RT-Fld",
 			title: "SpecIF:Heading",
-			description: "Folders with title and text for chapters or descriptive paragraphs.",
+			description: "Folder with title and text for chapters or descriptive paragraphs.",
 			isHeading: true,
-			propertyTypes: [{
+			propertyClasses: [{
 				id: "PT-Fld-Name",
 				title: "dcterms:title",
 				dataType: "DT-ShortString",
-				changedAt: opts.fileDate
+				changedAt: opts.xmlDate
+			},{
+				id: "PT-Fld-Description",
+				title: "dcterms:description",
+				dataType: "DT-formattedText",
+				changedAt: opts.xmlDate
 			}],
-			changedAt: opts.fileDate
-		});
-
-		// Benötigte Statementtypen definieren:
-		var statementTypes = new Array(); 
-		statementTypes.push({
-			id: "ST-Visibility",
+			changedAt: opts.xmlDate
+		}]
+	}
+	// The statement classes:
+	function StatementClasses() {
+		return [{
+			id: "ST-shows",
 			title: "SpecIF:shows",
 			description: "Statement: Plan shows Model-Element",
 			subjectTypes: ["RT-Pln"],
 			objectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
-			changedAt: opts.fileDate
-		})
-		statementTypes.push({
-			id: "ST-Containment",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-contains",
 			title: "SpecIF:contains",
 			description: "Statement: Model-Element contains Model-Element",
 			subjectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
 			objectTypes: ["RT-Act", "RT-Sta", "RT-Evt"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Storage",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-stores",
 			title: "SpecIF:stores",
 			description: "Statement: Actor (Role, Function) writes and reads State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Writing",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-writes",
 			title: "SpecIF:writes",
 			description: "Statement: Actor (Role, Function) writes State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Reading",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-reads",
 			title: "SpecIF:reads",
 			description: "Statement: Actor (Role, Function) reads State (Information)",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Sta"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Preceding",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-precedes",
 			title: "SpecIF:precedes",
 			description: "A FMC:Actor 'precedes' a FMC:Actor; e.g. in a business process or activity flow.",
 			subjectTypes: ["RT-Act"],
 			objectTypes: ["RT-Act"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Signalling",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-signals",
 			title: "SpecIF:signals",
 			description: "A FMC:Actor 'signals' a FMC:Event.",
 			subjectTypes: ["RT-Act", "RT-Evt"],
 			objectTypes: ["RT-Evt"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-Triggering",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-triggers",
 			title: "SpecIF:triggers",
 			description: "A FMC:Event 'triggers' a FMC:Actor.",
 			subjectTypes: ["RT-Evt"],
 			objectTypes: ["RT-Act"],
-			changedAt: opts.fileDate
-		});
-		statementTypes.push({
-			id: "ST-ReferingTo",
+			changedAt: opts.xmlDate
+		},{
+			id: "ST-refersTo",
 			title: "SpecIF:refersTo",
 			description: "A SpecIF:Comment, SpecIF:Note or SpecIF:Issue 'refers to' any other resource.",
-			subjectTypes: ["RT-Not"],
-			objectTypes: ["RT-Pln", "RT-Act", "RT-Sta", "RT-Evt", "RT-Not", "RT-Col"],
-			changedAt: opts.fileDate
-		});
-
-		// Benötigte Hierarchietypen definieren:
-		var hierarchyTypes = new Array(); 
-		hierarchyTypes.push({
-			id: "HT-BPMN-Prozessmodell",
+			subjectTypes: ["RT-Nte"],
+			objectTypes: ["RT-Pln", "RT-Act", "RT-Sta", "RT-Evt", "RT-Col"],
+			changedAt: opts.xmlDate
+		}]
+	}
+	// The hierarchy classes:
+	function HierarchyClasses() {
+		return [{
+			id: "HT-Processmodel",
 			title: "SpecIF:Hierarchy",
 			description: "Root node of a process model (outline).",
-			changedAt: opts.fileDate
-		});
-
-		// Resourcen und Statements einbinden:
-		var resources = new Array(); 
-		var statements = new Array();
-
-		elements.forEach( function(el) {
-			if (el.hasOwnProperty("resourceType")) {
-				resources.push(el);
-			}
-			if (el.hasOwnProperty("statementType")) {
-				statements.push(el);
-			}
-		});
-
-		// Hierarchiebeziehungen einbinden:
-		var hierarchies = new Array(); 
-
-		// Folder anlegen:
-		resources = resources.concat([{ 
-			id: "Folder1",
-			resourceType: "RT-Fld",
-			title: "Modell-Elemente (Glossar)",
+			changedAt: opts.xmlDate
+		}]
+	}
+	// The folder resources within a hierarchy:
+	function Folders() {
+		return [{
+			id: "FolderGlossary",
+			class: "RT-Fld",
+			title: opts.strGlossaryFolder,
 			properties: [{
-				propertyType: "PT-Fld-Name",
-				value: "Modell-Elemente (Glossar)"
+				class: "PT-Fld-Name",
+				value: opts.strGlossaryFolder
 			}],
-			changedAt: opts.fileDate
+			changedAt: opts.xmlDate
 		}, {
-			id: "Folder1.1",
-			resourceType: "RT-Fld",
-			title: "Akteure",
+			id: "FolderAct",
+			class: "RT-Fld",
+			title: opts.strActorFolder,
 			properties: [{
-				propertyType: "PT-Fld-Name",
-				value: "Akteure"
+				class: "PT-Fld-Name",
+				value: opts.strActorFolder
 			}],
-			changedAt: opts.fileDate
+			changedAt: opts.xmlDate
 		}, {
-			id: "Folder1.2",
-			resourceType: "RT-Fld",
-			title: "Zustände",
+			id: "FolderSta",
+			class: "RT-Fld",
+			title: opts.strStateFolder,
 			properties: [{
-				propertyType: "PT-Fld-Name",
-				value: "Zustände"
+				class: "PT-Fld-Name",
+				value: opts.strStateFolder
 			}],
-			changedAt: opts.fileDate
+			changedAt: opts.xmlDate
 		}, {
-			id: "Folder1.3",
-			resourceType: "RT-Fld",
-			title: "Ereignisse",
+			id: "FolderEvt",
+			class: "RT-Fld",
+			title: opts.strEventFolder,
 			properties: [{
-				propertyType: "PT-Fld-Name",
+				class: "PT-Fld-Name",
+				value: opts.strEventFolder
+			}],
+			changedAt: opts.xmlDate
+		}, {
+			id: "FolderNte",
+			class: "RT-Fld",
+			title: opts.strAnnotationFolder,
+			properties: [{
+				class: "PT-Fld-Name",
 				value: "Ereignisse"
 			}],
-			changedAt: opts.fileDate
-		}]);
-
-		let nodeList = new Array;
-		nodeList.push({
-			id: "N-Diagram",
-			resource: resources[0].id,
-			changedAt: opts.fileDate
-		})
-		nodeList.push({
-			id: "N-Folder1",
-			resource: "Folder1",
-			nodes: [],
-			changedAt: opts.fileDate
-		});
-		nodeList[1].nodes.push({
-			id: "N-Folder1.1",
-			resource: "Folder1.1",
-			nodes: [],
-			changedAt: opts.fileDate
-		});
-		nodeList[1].nodes.push({
-			id: "N-Folder1.2",
-			resource: "Folder1.2",
-			nodes: [],
-			changedAt: opts.fileDate
-		});
-		nodeList[1].nodes.push({
-			id: "N-Folder1.3",
-			resource: "Folder1.3",
-			nodes: [],
-			changedAt: opts.fileDate
-		});
-
-		// Folder mit Akteuren, Zuständen und Ereignisen füllen:
-		resources.forEach( function(r) { 
-			if (r.resourceType == "RT-Act") {
-				nodeList[1].nodes[0].nodes.push({
-					id: "N-" + r.id,
-					resource: r.id,
-					changedAt: opts.fileDate
-				})
-			};
-			if (r.resourceType == "RT-Sta") {
-				nodeList[1].nodes[1].nodes.push({
-					id: "N-" + r.id,
-					resource: r.id,
-					changedAt: opts.fileDate
-				})
-			};
-			if (r.resourceType == "RT-Evt") {
-				nodeList[1].nodes[2].nodes.push({
-					id: "N-" + r.id,
-					resource: r.id,
-					changedAt: opts.fileDate
-				})
-			}
-		});
-
-		hierarchies.push({
-			id: "outline",
-			title: model.title,
-			hierarchyType: "HT-BPMN-Prozessmodell",
-			nodes: nodeList,
-			changedAt: opts.fileDate
-		});
-
-		// Verbinden der einzelnen SpecIF-Bestandteile mit dem Hauptknoten
-		model.dataTypes = dataTypes;
-		model.resourceTypes = resourceTypes;
-		model.statementTypes = statementTypes;
-		model.hierarchyTypes = hierarchyTypes;
-		model.resources = resources;
-		model.statements = statements;
-		model.hierarchies = hierarchies;
-		
-		return model
+			changedAt: opts.xmlDate
+		}]
+	}
+	function itemById(L,id) {
+		// given the ID of an element in a list, return the element itself:
+		id = id.trim();
+		for( var i=L.length-1;i>-1;i-- )
+			if( L[i].id === id ) return L[i];   // return list item
+		return null
 	}
 }

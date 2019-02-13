@@ -16,39 +16,47 @@
             var xmlFile = document.getElementById("XML").files[0],
 				svgFile = document.getElementById("SVG").files[0];
 			var opts = {};
-			opts.fileName = xmlFile.name;
+			opts.xmlName = xmlFile.name;
 			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
 			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
-			opts.fileDate = new Date();
-            opts.fileDate = opts.fileDate.toISOString();
+			opts.xmlDate = new Date();
+            opts.xmlDate = opts.xmlDate.toISOString();
+			opts.svgName = svgFile? svgFile.name : null;
 
-            var reader = new FileReader();
+            let reader = new FileReader();
+			reader.addEventListener('loadend', createSpecifz );
             reader.readAsText(xmlFile);
-            reader.onloadend = function() {
-                var xmlString = reader.result;
-                document.getElementById("output").innerHTML = reader.result;
+			return
+
+			// Store the .specifz file locally:
+			function createSpecifz(ev) {
+				let bpmnXml = ev.target.result;
+				document.getElementById("input").innerHTML = bpmnXml;
 				
 				// transform to SpecIF:
-                var model = BPMN2Specif( xmlString, opts );
-				// ... and store as ZIP:
-				var myJSON = JSON.stringify(model);
-				var myBeautyJSON = JSON.stringify(model, null, "\t");
-				document.getElementById("output").innerHTML = document.getElementById("output").innerHTML + myBeautyJSON;;
-				zipCreator(myJSON, svgFile, opts.title)
-            }
-        }
+				let model = BPMN2Specif( bpmnXml, opts );
+				// here, we supply the files separately:
+				model.files.forEach( function(f) {
+					if(f.blob) delete f.blob
+				});
+				//  store as ZIP:
+				let myJSON = JSON.stringify(model),
+					myBeautyJSON = JSON.stringify(model, null, "\t");
+				document.getElementById("output").innerHTML = myBeautyJSON;
 
-		// Store the .specifz file locally:
-		function zipCreator(json, svg, title) {
-			var zip = new JSZip();
-			zip.file("BPMN.specif", json);
-			zip.file("BusinessProcess.svg", svg);
-			zip.generateAsync({
+				let zip = new JSZip();
+				zip.file( opts.xmlName, xmlFile );
+				zip.file( opts.title+".specif", myJSON);
+				if( svgFile )
+					zip.file( opts.svgName, svgFile );
+				
+				zip.generateAsync({
 					type: "blob"
 				})
 				.then(function(blob) {
-					saveAs(blob, title + ".specifz")
+					saveAs(blob, opts.title+".specifz")
 				})
+			}
 		}
     </script>
 </head>
@@ -68,6 +76,9 @@
 	<p>
 		<button type="button" onclick="readFile()">BPMN Dateien in .specifz umwandeln</button>
 	</p>
+
+	<p>Input:</p>
+	<textarea id="input" name="text" cols="180" rows="20"></textarea>
 
 	<p>Output:</p>
 	<textarea id="output" name="text" cols="180" rows="20"></textarea>
