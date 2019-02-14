@@ -193,7 +193,7 @@ function BPMN2Specif( xmlString, opts ) {
 									properties: [{
 										title: "dcterms:title",
 										class: "PT-Act-Name",
-										value: model.title
+										value: elName
 									}, {
 										title: "SpecIF:Stereotype",
 										class: "PT-Act-Stereotype",
@@ -211,13 +211,12 @@ function BPMN2Specif( xmlString, opts ) {
 									changedAt: opts.xmlDate
 								});
 								// temporarily store relations for the contained model-elements:
-								el.childNodes.forEach( function(el3) {
+								el2.childNodes.forEach( function(el3) {
 									if( el3.nodeName.includes('flowNodeRef') ) {
-										let el3Id = el3.getAttribute("id");  
 										ctL.push({
 											class: 'ST-contains',
-											subject: el2Id, // the lane
-											object: el3Id		// the contained model-element
+											subject: el2Id, 		// the lane
+											object: el3.innerHTML	// the contained model-element
 										})
 									}
 								})
@@ -228,23 +227,24 @@ function BPMN2Specif( xmlString, opts ) {
 			}
 		});
 		// 4.2 Second pass to collect the model-elements:
-		let taCnt=1;
 		pr.childNodes.forEach( function(el) {
 			// quit, if the child node does not have a tag, e.g. if it is '#text':
 			if( !el.tagName ) return;
 			// else:
 			tag = el.tagName.split(':').pop();	// tag without namespace
-			// The laneSet has been analyzed, before:
-			if( tag=='laneSet' ) return;
-			// else:
 			id = el.getAttribute("id");
 			title = el.getAttribute("name");
 //			console.debug('#2',tag,id,title);
 			let found = false,
 				gw;
 			switch(tag) {
+				case 'laneSet':
+					// has been analyzed, before
+					return;
 				case 'sequenceFlow':
-					// will be analyzed in the third pass
+				case 'association':
+				case 'textAnnotation':
+					// will be analyzed in a later pass
 					break;
 				case 'task':
 				case 'userTask':
@@ -379,7 +379,8 @@ function BPMN2Specif( xmlString, opts ) {
 						return
 					};
 					// else:
-					// Transform all joining gateways to tasks:
+					found = true;
+					// Transform all joining gateways to actors:
 					if( gw.outgoing.length==1 ) {
 						if( tag=='exclusiveGateway' ) {
 							title = opts.strJoinExcGateway;
@@ -435,6 +436,7 @@ function BPMN2Specif( xmlString, opts ) {
 					};
 					// else: 'exclusiveGateway' && gw.outgoing.length>1
 					gw.title = title;
+					// Add the title (condition), if specified:
 					title = opts.strForkExcGateway+(title? ': '+title : '');
 					model.resources.push({
 						id: id,
@@ -458,9 +460,6 @@ function BPMN2Specif( xmlString, opts ) {
 					// list the gateway for postprocessing in the next pass:
 					gwL.push(gw);
 					break;
-				case 'textAnnotation':
-					// will be analyzed in the next pass
-					break; 
 				default:
 					console.warn('The BPMN element with tag ',tag,' and title ',title,' has not been transformed.')
 			};
@@ -488,7 +487,7 @@ function BPMN2Specif( xmlString, opts ) {
 			title = opts.strTextAnnotation + (++idx>9? ' '+idx : ' 0'+idx);
 			// even though there should be only one sub-element:
 			ta.childNodes.forEach( function(txt) {
-				console.debug('textAnnotation.childNode',txt);
+//				console.debug('textAnnotation.childNode',txt);
 				if( !txt.tagName ) return;
 				if( txt.tagName.includes('text') ) {
 					model.resources.push({
