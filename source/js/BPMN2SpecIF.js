@@ -1004,7 +1004,7 @@ function BPMN2Specif( xmlString, opts ) {
 			title: opts.strAnnotationFolder,
 			properties: [{
 				class: "PT-Fld-Name",
-				value: "Ereignisse"
+				value: opts.strAnnotationFolder
 			}],
 			changedAt: opts.xmlDate
 		}]
