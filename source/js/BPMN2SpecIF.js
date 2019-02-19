@@ -314,8 +314,11 @@ function BPMN2Specif( xmlString, opts ) {
 					break;
 				case 'dataObjectReference':
 				case 'dataStoreReference':
-					// store the model-element as FMC:State,
-					// interestingly enough, the name and other information are properties of xxxReference:
+					// Store the model-element as FMC:State,
+					// Interestingly enough, the name and other information are properties of xxxReference.
+					// - Which id to use, the dataObjectReference's or the dataObject's ?
+					// - We decide to use the former, as the associations use it.
+					// - Even though we use 'dataObject' or 'dataStore' as stereotype.
 					model.resources.push({
 						id: id,
 						title: title,
@@ -327,7 +330,7 @@ function BPMN2Specif( xmlString, opts ) {
 						}, {
 							title: "SpecIF:Stereotype",
 							class: "PT-Sta-Stereotype",
-							value: 'BPMN:'+tag
+							value: 'BPMN:'+( tag=='dataStoreReference'? 'dataStore' : 'dataObject' )
 						}],
 						changedAt: opts.xmlDate
 					});
