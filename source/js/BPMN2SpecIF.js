@@ -823,12 +823,7 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "RC-Collection",
 			title: "SpecIF:Collection",
 			description: "A 'Collection' is an arbitrary group of resources linked with a SpecIF:contains statement. It corresponds to a 'Group' in BPMN Diagrams.",
-			propertyClasses: [{
-				id: "PC-Name",
-				title: "dcterms:title",
-				dataType: "DT-ShortString",
-				changedAt: opts.xmlDate
-			}],
+			propertyClasses: ["PC-Name"],
 			changedAt: opts.xmlDate
 		},{
 			id: "RC-Folder",
