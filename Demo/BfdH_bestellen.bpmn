@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" xmlns:signavio="http://www.signavio.com" id="sid-0b0aaa25-3baf-4875-9d7a-0907d599a9ef" targetNamespace="http://www.omg.org/spec/BPMN/20100524/MODEL" exporter="Camunda Modeler" exporterVersion="2.2.4" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <dataStore id="FinancialAccountingSystem" name="Financial Accounting System" isUnlimited="false">
+    <dataState id="DataState_1" />
+  </dataStore>
+  <message id="foxMessage_en" name="foxMessage_en" />
+  <collaboration id="collaboration_3">
+    <documentation>Bewirtschafter-Nr. anlegen</documentation>
+    <participant id="Process_Engine_1" name="Beauftragten für Dienststelle des Haushalts bestellen" processRef="invoice" />
+  </collaboration>
+  <process id="invoice" name="Invoice Receipt" isExecutable="true" camunda:versionTag="V1.0" camunda:historyTimeToLive="30">
+    <laneSet id="laneSet_5">
+      <lane id="bundeskasse" name="Bundeskasse">
+        <flowNodeRef>ServiceTask_06mdb3v</flowNodeRef>
+        <flowNodeRef>ExclusiveGateway_1flskyt</flowNodeRef>
+      </lane>
+      <lane id="dienststelle" name="Dienststelle">
+        <flowNodeRef>approveInvoice</flowNodeRef>
+        <flowNodeRef>Task_1ymb2ic</flowNodeRef>
+        <flowNodeRef>ExclusiveGateway_0loe7o7</flowNodeRef>
+        <flowNodeRef>StartEvent_1tkg7k8</flowNodeRef>
+        <childLaneSet id="LaneSet_1w3soel">
+          <lane id="Lane_15kot5t" name="Leiter">
+            <flowNodeRef>approveInvoice</flowNodeRef>
+          </lane>
+          <lane id="Lane_0jy9eq0" name="Mitarbeiter">
+            <flowNodeRef>Task_1ymb2ic</flowNodeRef>
+            <flowNodeRef>ExclusiveGateway_0loe7o7</flowNodeRef>
+            <flowNodeRef>StartEvent_1tkg7k8</flowNodeRef>
+          </lane>
+        </childLaneSet>
+      </lane>
+      <lane id="org" name="Komponente ORG">
+        <flowNodeRef>Task_0qwce0x</flowNodeRef>
+        <flowNodeRef>Task_1waz947</flowNodeRef>
+        <flowNodeRef>Task_1ix01jb</flowNodeRef>
+        <flowNodeRef>EndEvent_1yzqgln</flowNodeRef>
+      </lane>
+    </laneSet>
+    <sequenceFlow id="sequenceFlow_178" isImmediate="true" sourceRef="StartEvent_1tkg7k8" targetRef="ExclusiveGateway_0loe7o7" />
+    <userTask id="approveInvoice" name="Bestellung bestätigen" camunda:formKey="embedded:app:forms/approve-invoice.html" camunda:candidateGroups="${approverGroups}" camunda:dueDate="${dateTime().plusWeeks(1).toDate()}">
+      <documentation>Approve the invoice (or not).</documentation>
+      <extensionElements>
+        <camunda:taskListener event="create">
+          <camunda:script scriptFormat="javascript">if(!!task.getVariable('approver')) {
+  task.setAssignee(approver);
+}</camunda:script>
+        </camunda:taskListener>
+        <camunda:taskListener event="assignment">
+          <camunda:script scriptFormat="javascript">task.setVariable('approver', task.getAssignee());</camunda:script>
+        </camunda:taskListener>
+      </extensionElements>
+      <incoming>SequenceFlow_0c81m94</incoming>
+      <outgoing>SequenceFlow_0pxhgul</outgoing>
+    </userTask>
+    <userTask id="ServiceTask_06mdb3v" name="Bestellung prüfen">
+      <incoming>SequenceFlow_0pxhgul</incoming>
+      <outgoing>SequenceFlow_1ga47gn</outgoing>
+    </userTask>
+    <userTask id="Task_1ymb2ic" name="Bestellung anlegen/&#10;bearbeiten">
+      <incoming>SequenceFlow_1eppygq</incoming>
+      <outgoing>SequenceFlow_0c81m94</outgoing>
+    </userTask>
+    <exclusiveGateway id="ExclusiveGateway_1flskyt" name="Prüfung erfolgreich?">
+      <incoming>SequenceFlow_1ga47gn</incoming>
+      <outgoing>SequenceFlow_1v5drgn</outgoing>
+      <outgoing>SequenceFlow_1h4pyd9</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="Task_0qwce0x" name="BfdH anlegen">
+      <incoming>SequenceFlow_1v5drgn</incoming>
+      <outgoing>SequenceFlow_00lwtsm</outgoing>
+    </serviceTask>
+    <serviceTask id="Task_1waz947" name="Bewirt-&#10;schafter Nr. für Dienststelle als MV erstellen">
+      <incoming>SequenceFlow_00lwtsm</incoming>
+      <outgoing>SequenceFlow_0e2hppa</outgoing>
+    </serviceTask>
+    <sequenceFlow id="SequenceFlow_0c81m94" sourceRef="Task_1ymb2ic" targetRef="approveInvoice" />
+    <sequenceFlow id="SequenceFlow_0pxhgul" sourceRef="approveInvoice" targetRef="ServiceTask_06mdb3v" />
+    <sequenceFlow id="SequenceFlow_1ga47gn" sourceRef="ServiceTask_06mdb3v" targetRef="ExclusiveGateway_1flskyt" />
+    <sequenceFlow id="SequenceFlow_1h4pyd9" name="Nein" sourceRef="ExclusiveGateway_1flskyt" targetRef="ExclusiveGateway_0loe7o7" />
+    <sequenceFlow id="SequenceFlow_1v5drgn" name="Ja" sourceRef="ExclusiveGateway_1flskyt" targetRef="Task_0qwce0x" />
+    <sequenceFlow id="SequenceFlow_00lwtsm" sourceRef="Task_0qwce0x" targetRef="Task_1waz947" />
+    <exclusiveGateway id="ExclusiveGateway_0loe7o7">
+      <incoming>sequenceFlow_178</incoming>
+      <incoming>SequenceFlow_1h4pyd9</incoming>
+      <outgoing>SequenceFlow_1eppygq</outgoing>
+    </exclusiveGateway>
+    <sequenceFlow id="SequenceFlow_1eppygq" sourceRef="ExclusiveGateway_0loe7o7" targetRef="Task_1ymb2ic" />
+    <startEvent id="StartEvent_1tkg7k8" name="Beauftragten bestellen">
+      <outgoing>sequenceFlow_178</outgoing>
+    </startEvent>
+    <receiveTask id="Task_1ix01jb" name="Bewirt-&#10;schafter Nr. an Dienststellen- leiter und BdfH">
+      <incoming>SequenceFlow_0e2hppa</incoming>
+      <outgoing>SequenceFlow_1aj3gls</outgoing>
+      <dataOutputAssociation id="DataOutputAssociation_0ci6tyc">
+        <targetRef>DataObjectReference_1n6r6jr</targetRef>
+      </dataOutputAssociation>
+      <dataOutputAssociation id="DataOutputAssociation_015npyu">
+        <targetRef>DataObjectReference_1sr5ucq</targetRef>
+      </dataOutputAssociation>
+    </receiveTask>
+    <sequenceFlow id="SequenceFlow_1aj3gls" sourceRef="Task_1ix01jb" targetRef="EndEvent_1yzqgln" />
+    <sequenceFlow id="SequenceFlow_0e2hppa" sourceRef="Task_1waz947" targetRef="Task_1ix01jb" />
+    <dataObjectReference id="DataObjectReference_1n6r6jr" name="Email mit Bewirtschafter Nr." dataObjectRef="DataObject_0r18p3g" />
+    <dataObject id="DataObject_0r18p3g" />
+    <endEvent id="EndEvent_1yzqgln">
+      <incoming>SequenceFlow_1aj3gls</incoming>
+    </endEvent>
+    <dataObjectReference id="DataObjectReference_1sr5ucq" name="Email mit Bewirtschafter Nr." dataObjectRef="DataObject_1vcqia6" />
+    <dataObject id="DataObject_1vcqia6" />
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_73">
+    <bpmndi:BPMNPlane id="BPMNPlane_73" bpmnElement="collaboration_3">
+      <bpmndi:BPMNShape id="Process_Engine_1_gui" bpmnElement="Process_Engine_1" isHorizontal="true">
+        <omgdc:Bounds x="-24" y="-22" width="1345" height="533" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Freigebender_105_gui" bpmnElement="bundeskasse" isHorizontal="true">
+        <omgdc:Bounds x="6" y="241" width="1315" height="141" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Team-Assistenz_110_gui" bpmnElement="dienststelle" isHorizontal="true">
+        <omgdc:Bounds x="6" y="-22" width="1315" height="263" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Buchhaltung_119_gui" bpmnElement="org" isHorizontal="true">
+        <omgdc:Bounds x="6" y="382" width="1315" height="129" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Rechnung_freigeben_125_gui" bpmnElement="approveInvoice" isHorizontal="true">
+        <omgdc:Bounds x="337" y="7" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sequenceFlow_178_gui" bpmnElement="sequenceFlow_178" sourceElement="StartEvent_1tkg7k8_di" targetElement="ExclusiveGateway_0loe7o7_di">
+        <omgdi:waypoint x="125" y="175" />
+        <omgdi:waypoint x="152" y="175" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="310" y="185" width="0" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="UserTask_0mvuov6_di" bpmnElement="ServiceTask_06mdb3v">
+        <omgdc:Bounds x="496" y="262" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_15kot5t_di" bpmnElement="Lane_15kot5t">
+        <omgdc:Bounds x="36" y="-22" width="1285" height="138" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_0jy9eq0_di" bpmnElement="Lane_0jy9eq0">
+        <omgdc:Bounds x="36" y="116" width="1285" height="125" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_1x1phj3_di" bpmnElement="Task_1ymb2ic">
+        <omgdc:Bounds x="240" y="135" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1flskyt_di" bpmnElement="ExclusiveGateway_1flskyt" isMarkerVisible="true">
+        <omgdc:Bounds x="642" y="277" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="638" y="246" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ga47gn_di" bpmnElement="SequenceFlow_1ga47gn">
+        <omgdi:waypoint x="596" y="302" />
+        <omgdi:waypoint x="642" y="302" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1v5drgn_di" bpmnElement="SequenceFlow_1v5drgn">
+        <omgdi:waypoint x="692" y="302" />
+        <omgdi:waypoint x="774" y="302" />
+        <omgdi:waypoint x="774" y="410" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="727" y="284" width="12" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0pxhgul_di" bpmnElement="SequenceFlow_0pxhgul">
+        <omgdi:waypoint x="437" y="47" />
+        <omgdi:waypoint x="546" y="47" />
+        <omgdi:waypoint x="546" y="262" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0c81m94_di" bpmnElement="SequenceFlow_0c81m94">
+        <omgdi:waypoint x="340" y="175" />
+        <omgdi:waypoint x="387" y="175" />
+        <omgdi:waypoint x="387" y="87" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_00lwtsm_di" bpmnElement="SequenceFlow_00lwtsm">
+        <omgdi:waypoint x="824" y="450" />
+        <omgdi:waypoint x="881" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_0otnd45_di" bpmnElement="Task_0qwce0x">
+        <omgdc:Bounds x="724" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_1ymweak_di" bpmnElement="Task_1waz947">
+        <omgdc:Bounds x="881" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1h4pyd9_di" bpmnElement="SequenceFlow_1h4pyd9">
+        <omgdi:waypoint x="667" y="327" />
+        <omgdi:waypoint x="667" y="363" />
+        <omgdi:waypoint x="177" y="363" />
+        <omgdi:waypoint x="177" y="200" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="622" y="343" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ReceiveTask_1dosgoe_di" bpmnElement="Task_1ix01jb">
+        <omgdc:Bounds x="1035" y="410" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_1tkg7k8_di" bpmnElement="StartEvent_1tkg7k8">
+        <omgdc:Bounds x="89" y="157" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="76" y="200" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0loe7o7_di" bpmnElement="ExclusiveGateway_0loe7o7" isMarkerVisible="true">
+        <omgdc:Bounds x="152" y="150" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1eppygq_di" bpmnElement="SequenceFlow_1eppygq">
+        <omgdi:waypoint x="202" y="175" />
+        <omgdi:waypoint x="240" y="175" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1aj3gls_di" bpmnElement="SequenceFlow_1aj3gls">
+        <omgdi:waypoint x="1135" y="450" />
+        <omgdi:waypoint x="1185" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0e2hppa_di" bpmnElement="SequenceFlow_0e2hppa">
+        <omgdi:waypoint x="981" y="450" />
+        <omgdi:waypoint x="1035" y="450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1n6r6jr_di" bpmnElement="DataObjectReference_1n6r6jr">
+        <omgdc:Bounds x="1185" y="22" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1159" y="-15.5" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_0ci6tyc_di" bpmnElement="DataOutputAssociation_0ci6tyc">
+        <omgdi:waypoint x="1085" y="410" />
+        <omgdi:waypoint x="1085" y="301" />
+        <omgdi:waypoint x="1203" y="301" />
+        <omgdi:waypoint x="1203" y="72" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="DataObjectReference_1sr5ucq_di" bpmnElement="DataObjectReference_1sr5ucq">
+        <omgdc:Bounds x="1067" y="162" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1041" y="124.5" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_015npyu_di" bpmnElement="DataOutputAssociation_015npyu">
+        <omgdi:waypoint x="1085" y="410" />
+        <omgdi:waypoint x="1085" y="212" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_1yzqgln_di" bpmnElement="EndEvent_1yzqgln">
+        <omgdc:Bounds x="1185" y="432" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -181,6 +181,24 @@ function BPMN2Specif( xmlString, opts ) {
 				case 'laneSet':
 					// 3.1 Get the laneSets/lanes with their model elements;
 					//    	note that a 'laneSet' is not mandatory, e.g. BPMNio does not necessarily provide any.
+					/* Nested lanes are possible, as well, but not yet supported (ToDo):
+						  <lane id="dienststelle" name="Dienststelle">
+							<flowNodeRef>approveInvoice</flowNodeRef>
+							<flowNodeRef>Task_1ymb2ic</flowNodeRef>
+							<flowNodeRef>ExclusiveGateway_0loe7o7</flowNodeRef>
+							<flowNodeRef>StartEvent_1tkg7k8</flowNodeRef>
+							<childLaneSet id="LaneSet_1w3soel">
+							  <lane id="Lane_15kot5t" name="Leiter">
+								<flowNodeRef>approveInvoice</flowNodeRef>
+							  </lane>
+							  <lane id="Lane_0jy9eq0" name="Mitarbeiter">
+								<flowNodeRef>Task_1ymb2ic</flowNodeRef>
+								<flowNodeRef>ExclusiveGateway_0loe7o7</flowNodeRef>
+								<flowNodeRef>StartEvent_1tkg7k8</flowNodeRef>
+							  </lane>
+							</childLaneSet>
+						  </lane>
+					*/
 					el.childNodes.forEach( function(el2) {
 						if( el2.nodeName.includes('lane') ) {
 							let elName = el2.getAttribute("name"),
@@ -235,7 +253,7 @@ function BPMN2Specif( xmlString, opts ) {
 			// else:
 			tag = el.tagName.split(':').pop();	// tag without namespace
 			id = el.getAttribute("id");
-			title = el.getAttribute("name");
+			title = el.getAttribute("name") || tag;
 //			console.debug('#2',tag,id,title);
 			let found = false,
 				gw;
@@ -251,6 +269,9 @@ function BPMN2Specif( xmlString, opts ) {
 				case 'task':
 				case 'userTask':
 				case 'scriptTask':
+				case 'serviceTask':
+				case 'sendTask':
+				case 'receiveTask':
 				case 'callActivity':
 				case 'subProcess':
 					// store the model-element as FMC:Actor:
@@ -673,6 +694,7 @@ function BPMN2Specif( xmlString, opts ) {
 		// 6.2 Add Actors, States and Events to the respective folders,
 		// in alphabetical order:
 		res.sort( function(bim, bam) {
+					console.debug( bim, bam )
 					bim = bim.title.toLowerCase();
 					bam = bam.title.toLowerCase();
 					return bim==bam ? 0 : (bim<bam ? -1 : 1) 
