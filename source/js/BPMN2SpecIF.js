@@ -694,7 +694,6 @@ function BPMN2Specif( xmlString, opts ) {
 		// 6.2 Add Actors, States and Events to the respective folders,
 		// in alphabetical order:
 		res.sort( function(bim, bam) {
-					console.debug( bim, bam )
 					bim = bim.title.toLowerCase();
 					bam = bam.title.toLowerCase();
 					return bim==bam ? 0 : (bim<bam ? -1 : 1) 
