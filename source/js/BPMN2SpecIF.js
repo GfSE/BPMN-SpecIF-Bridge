@@ -253,7 +253,7 @@ function BPMN2Specif( xmlString, opts ) {
 			// else:
 			tag = el.tagName.split(':').pop();	// tag without namespace
 			id = el.getAttribute("id");
-			title = el.getAttribute("name") || tag;
+			title = el.getAttribute("name");
 //			console.debug('#2',tag,id,title);
 			let found = false,
 				gw;
@@ -277,12 +277,12 @@ function BPMN2Specif( xmlString, opts ) {
 					// store the model-element as FMC:Actor:
 					model.resources.push({
 						id: id,
-						title: title,
+						title: title || tag,
 						class: "RC-Actor",
 						properties: [{
 							title: "dcterms:title",
 							class: "PC-Name",
-							value: title
+							value: title || tag
 						}, {
 							title: "SpecIF:Stereotype",
 							class: "PC-Stereotype",
@@ -344,12 +344,12 @@ function BPMN2Specif( xmlString, opts ) {
 					// - Even though we use 'dataObject' or 'dataStore' as stereotype.
 					model.resources.push({
 						id: id,
-						title: title,
+						title: title || tag,
 						class: "RC-State",
 						properties: [{
 							title: "dcterms:title",
 							class: "PC-Name",
-							value: title
+							value: title || tag
 						}, {
 							title: "SpecIF:Stereotype",
 							class: "PC-Stereotype",
@@ -370,12 +370,12 @@ function BPMN2Specif( xmlString, opts ) {
 					// store the model-element as FMC:State:
 					model.resources.push({
 						id: id,
-						title: title,
+						title: title || tag,
 						class: "RC-Event",
 						properties: [{
 							title: "dcterms:title",
 							class: "PC-Name",
-							value: title
+							value: title || tag
 						}, {
 							title: "SpecIF:Stereotype",
 							class: "PC-Stereotype",
@@ -461,7 +461,7 @@ function BPMN2Specif( xmlString, opts ) {
 						return
 					};
 					// else: 'exclusiveGateway' && gw.outgoing.length>1
-					gw.title = title;
+					gw.title = title || tag;
 					// Add the title (condition), if specified:
 					title = opts.strForkExcGateway+(title? ': '+title : '');
 					model.resources.push({
@@ -561,7 +561,7 @@ function BPMN2Specif( xmlString, opts ) {
 							object:  itemById(model.resources,el.getAttribute('targetRef'))
 						};
 						// a. store an event representing the case:
-						title = (seqF.subject.title? seqF.subject.title+' → ' : '')+title; // &larr; = &#8594;
+						title = (seqF.subject.title? seqF.subject.title+' &#8594; ' : '')+title; // → = &rarr; = &#8594;
 						model.resources.push({
 							id: id,
 							title: title,
