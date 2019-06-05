@@ -43,12 +43,11 @@ function BPMN2Specif( xmlString, opts ) {
 	model.id = x[0].getAttribute("id");
 	model.title = opts.title || x[0].nodeName;
 	model.description = opts.description;
-	model.specifVersion = "0.10.6";
+	model.specifVersion = "0.10.8";
 	model.dataTypes = DataTypes();
 	model.propertyClasses = PropertyClasses();
 	model.resourceClasses = ResourceClasses();
 	model.statementClasses = StatementClasses();
-	model.hierarchyClasses = HierarchyClasses();
 
 	// Reference used files,
 	// - the BPMN file:
@@ -669,27 +668,32 @@ function BPMN2Specif( xmlString, opts ) {
 	// 6. The hierarchy with pointers to all resources:
 	function NodeList(res) {
 		// 6.1 first add the folders:
-		let nL = [{
-			id: "N-Diagram",
-			resource: diagramId,
-			changedAt: opts.xmlDate
-		},{
-			id: "N-FolderGlossary",
-			resource: "FolderGlossary",
+		let nL =  [{
+			id: "H-BPMN-outline",
+			resource: "BPMN-outline",
 			nodes: [{
-				id: "N-FolderAct",
-				resource: "FolderAct",
-				nodes: [],
+				id: "N-Diagram",
+				resource: diagramId,
 				changedAt: opts.xmlDate
 			},{
-				id: "N-FolderSta",
-				resource: "FolderSta",
-				nodes: [],
-				changedAt: opts.xmlDate
-			},{
-				id: "N-FolderEvt",
-				resource: "FolderEvt",
-				nodes: [],
+				id: "N-FolderGlossary",
+				resource: "FolderGlossary",
+				nodes: [{
+					id: "N-FolderAct",
+					resource: "FolderAct",
+					nodes: [],
+					changedAt: opts.xmlDate
+				},{
+					id: "N-FolderSta",
+					resource: "FolderSta",
+					nodes: [],
+					changedAt: opts.xmlDate
+				},{
+					id: "N-FolderEvt",
+					resource: "FolderEvt",
+					nodes: [],
+					changedAt: opts.xmlDate
+				}],
 				changedAt: opts.xmlDate
 			}],
 			changedAt: opts.xmlDate
@@ -710,33 +714,35 @@ function BPMN2Specif( xmlString, opts ) {
 			// sort resources according to their type:
 			let idx = ["RC-Actor","RC-State","RC-Event"].indexOf( r.class );
 			if( idx>-1 )
-				nL[1].nodes[idx].nodes.push(nd)
+				nL[0].nodes[1].nodes[idx].nodes.push(nd)
 		});
 		if( taL.length<1 ) return nL;
 		// else:
 		// 6.3 Add text annotations:
-		nL.push({
+		nL[0].nodes.push({
 			id: "N-FolderNte",
 			resource: "FolderNte",
 			nodes: [],
 			changedAt: opts.xmlDate
 		});
-		taL.forEach( function(r) { 
-			nL[2].nodes.push({
-				id: "N-" + r,
-				resource: r,
+		taL.forEach( function(a) { 
+			nL[0].nodes[2].nodes.push({
+				id: "N-" + a,
+				resource: a,
 				changedAt: opts.xmlDate
 			})
 		});
 		return nL
-	}
-	model.hierarchies = [{
-		id: "outline",
+	};
+	// Add the resource for the hierarchy root:
+	model.resources.push({
+		id: "BPMN-outline",
 		title: model.title,
-		class: "HT-Processmodel",
-		nodes: NodeList(model.resources),
+		class: "RC-Processmodel",
 		changedAt: opts.xmlDate
-	}]
+	});
+	// Add the tree:
+	model.hierarchies = NodeList(model.resources);
 	
 //	console.debug('model',model);
 	return model;
@@ -856,6 +862,11 @@ function BPMN2Specif( xmlString, opts ) {
 			isHeading: true,
 			propertyClasses: ["PC-Name","PC-Description"],
 			changedAt: opts.xmlDate
+		},{
+			id: "RC-Processmodel",
+			title: "SpecIF:Hierarchy",
+			description: "Root node of a process model (outline).",
+			changedAt: opts.xmlDate
 		}]
 	}
 	// The statement classes:
@@ -925,15 +936,7 @@ function BPMN2Specif( xmlString, opts ) {
 			changedAt: opts.xmlDate
 		}]
 	}
-	// The hierarchy classes:
-	function HierarchyClasses() {
-		return [{
-			id: "HT-Processmodel",
-			title: "SpecIF:Hierarchy",
-			description: "Root node of a process model (outline).",
-			changedAt: opts.xmlDate
-		}]
-	}
+
 	// The folder resources within a hierarchy:
 	function Folders() {
 		return [{
