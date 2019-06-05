@@ -19,7 +19,7 @@
 			opts.xmlName = xmlFile.name;
 			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
 			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
-			opts.xmlDate = new Date();
+			opts.xmlDate = new Date(xmlFile.lastModified)
             opts.xmlDate = opts.xmlDate.toISOString();
 			opts.svgName = svgFile? svgFile.name : null;
 

@@ -53,17 +53,20 @@ function BPMN2Specif( xmlString, opts ) {
 	// Reference used files,
 	// - the BPMN file:
 	model.files = [{
-		id: opts.xmlName,
+		id: 'F-'+simpleHash(opts.xmlName),
+		title: opts.xmlName,
 		blob: xmlString,
-		type: "application/bpmn+xml"
+		type: "application/bpmn+xml",
+		changedAt: opts.xmlDate
 	}];
-	// - an image of the process, if available:
+/*	// - an image of the process, if available:
 	if( opts.svgName )
 		model.files.push({
-			id: opts.svgName,
+			id: 'F-'+simpleHash(opts.svgName),
+			title: opts.svgName,
 		//	blob: ,
 			type: "image/svg+xml"
-		});
+		}); */
 	model.resources = Folders();
 	model.statements = [];
 
@@ -990,5 +993,8 @@ function BPMN2Specif( xmlString, opts ) {
 	function ctrl2HTML(str) {
 	// Convert js/json control characters (new line) to HTML-tags and remove the others:
 		return str.replace( /\r|\f/g, '' ).replace( /\t/g, ' ' ).replace( /\n/g, '<br />' )
-	};
+	}
+	// Make a very simple hash code from a string:
+	// http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+	function simpleHash(str) {for(var r=0,i=0;i<str.length;i++)r=(r<<5)-r+str.charCodeAt(i),r&=r;return r};
 }
