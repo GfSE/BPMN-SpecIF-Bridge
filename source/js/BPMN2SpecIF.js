@@ -33,7 +33,7 @@ function BPMN2Specif( xmlString, opts ) {
 	// BPMN Collaborations list participants (with referenced processes) and messageFlows.
 	// Participants are source and/or target for message-flows (not the referenced processes),
 	// so we decide to transform the participants to SpecIF, but not the processes.
-	let x = xmlDoc.querySelectorAll("collaboration");
+	let x = Array.from(xmlDoc.querySelectorAll("collaboration"));
 	// There should be only one collaboration per BPMN file:
 	if( x.length>1 )
 		console.warn("Diagram with id ',model.id,' has more than one collaboration.");
@@ -488,7 +488,7 @@ function BPMN2Specif( xmlString, opts ) {
 			}
 		});
 		// 4.3 Third pass to collect the text annotations:
-		let tL = xmlDoc.querySelectorAll("textAnnotation");
+		let tL = Array.from(xmlDoc.querySelectorAll("textAnnotation"));
 		tL.forEach( function(ta,idx) {
 			id = ta.getAttribute("id");
 			title = opts.strTextAnnotation + (++idx>9? ' '+idx : ' 0'+idx);
@@ -969,7 +969,8 @@ function BPMN2Specif( xmlString, opts ) {
 		return null
 	}
 	function ctrl2HTML(str) {
-	// Convert js/json control characters (new line) to HTML-tags and remove the others:
+		// Convert js/json control characters (new line) to HTML-tags and remove the others:
+		if( typeof( str )!='string' ) str = '';
 		return str.replace( /\r|\f/g, '' ).replace( /\t/g, ' ' ).replace( /\n/g, '<br />' )
 	}
 	// Make a very simple hash code from a string:
