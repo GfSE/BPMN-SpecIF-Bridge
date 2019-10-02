@@ -72,6 +72,7 @@ function BPMN2Specif( xmlString, opts ) {
 
 	// 1. Represent the diagram itself:
 	const diagramId = 'D-' + model.id,
+		hId = 'BPMN-outline-' + model.id,
 		dg = opts.svgName?"<object data=\""+opts.svgName+"\" type=\"image/svg+xml\" >"+opts.svgName+"</object>"
 						:"<object data=\""+opts.xmlName+"\" type=\"application/bpmn+xml\" >"+opts.xmlName+"</object>";
 	model.resources.push({
@@ -645,8 +646,8 @@ function BPMN2Specif( xmlString, opts ) {
 	function NodeList(res) {
 		// 6.1 first add the folders:
 		let nL =  [{
-			id: "H-BPMN-outline",
-			resource: "BPMN-outline",
+			id: "H-"+hId,
+			resource: hId,
 			nodes: [{
 				id: "N-Diagram",
 				resource: diagramId,
@@ -712,7 +713,7 @@ function BPMN2Specif( xmlString, opts ) {
 	};
 	// Add the resource for the hierarchy root:
 	model.resources.push({
-		id: "BPMN-outline",
+		id: hId,
 		title: model.title,
 		class: "RC-Processmodel",
 		changedAt: opts.xmlDate
