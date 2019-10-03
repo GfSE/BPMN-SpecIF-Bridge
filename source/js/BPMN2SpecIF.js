@@ -49,6 +49,7 @@ function BPMN2Specif( xmlString, opts ) {
 	model.propertyClasses = PropertyClasses();
 	model.resourceClasses = ResourceClasses();
 	model.statementClasses = StatementClasses();
+	model.statements = [];
 
 	// Reference used files,
 	// - the BPMN file:
@@ -67,15 +68,15 @@ function BPMN2Specif( xmlString, opts ) {
 		//	blob: ,
 			type: "image/svg+xml"
 		}); */
-	model.resources = Folders();
-	model.statements = [];
 
-	// 1. Represent the diagram itself:
 	const apx = simpleHash(model.id),
 		diagramId = 'D-' + apx,
 		hId = 'BPMN-outline-' + apx,
 		dg = opts.svgName?"<object data=\""+opts.svgName+"\" type=\"image/svg+xml\" >"+opts.svgName+"</object>"
 						:"<object data=\""+opts.xmlName+"\" type=\"application/bpmn+xml\" >"+opts.xmlName+"</object>";
+	// 1. Add the folders:
+	model.resources = Folders();
+	// 2. Represent the diagram itself:
 	model.resources.push({
 		id: diagramId,
 		title: model.title,
