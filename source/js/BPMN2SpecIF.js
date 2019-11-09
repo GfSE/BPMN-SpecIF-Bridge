@@ -13,7 +13,20 @@ function BPMN2Specif( xmlString, opts ) {
 	if( !opts.mimeType ) 
 		opts.mimeType = "application/bpmn+xml";
 	if( typeof(opts.isIE)!='boolean' )
-		opts.isIE = /MSIE |rv:11.0/i.test(navigator.userAgent);
+		opts.isIE = /MSIE |rv:11.0/i.test( navigator.userAgent );
+	
+	if( !opts.strGlossaryFolder ) 
+		opts.strGlossaryFolder = "Model-Elements (Glossary)";
+	if( !opts.strGlossaryType ) 
+		opts.strGlossaryType = "SpecIF:Glossary";
+	if( !opts.strActorFolder ) 
+		opts.strActorFolder = "Actors";
+	if( !opts.strStateFolder ) 
+		opts.strStateFolder = "States";
+	if( !opts.strEventFolder ) 
+		opts.strEventFolder = "Events";
+	if( !opts.strAnnotationFolder ) 
+		opts.strAnnotationFolder = "Text Annotations";
 
 	if( !opts.strJoinExcGateway ) 
 		opts.strJoinExcGateway = "Joining Exclusive Gateway";
@@ -33,17 +46,6 @@ function BPMN2Specif( xmlString, opts ) {
 		opts.strForkParGatewayDesc = "<p>Forward control to <em>all</em> outgoing connections.</p>";
 	if( !opts.strTextAnnotation ) 
 		opts.strTextAnnotation = "Text Annotation";
-	
-	if( !opts.strGlossaryFolder ) 
-		opts.strGlossaryFolder = "Model Elements (Glossary)";
-	if( !opts.strActorFolder ) 
-		opts.strActorFolder = "Actors";
-	if( !opts.strStateFolder ) 
-		opts.strStateFolder = "States";
-	if( !opts.strEventFolder ) 
-		opts.strEventFolder = "Events";
-	if( !opts.strAnnotationFolder ) 
-		opts.strAnnotationFolder = "Text Annotations";
 	
 	var parser = new DOMParser();
 	var xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -192,7 +194,7 @@ function BPMN2Specif( xmlString, opts ) {
 		pa.title = pa.title || pr.getAttribute('name');
 		let ctL = [],	// temporary list for containment relations between lanes and model-elements
 			gwL = [],	// temporary list for gateways needing some special attention later
-			tag, id, title, desc, cId, seqF;
+			tag, idx, id, title, desc, cId, seqF;
 		// 4.1 First pass to get the lanes, which do not necessarily come first:
 		Array.from(pr.childNodes).forEach( function(el) {
 			tag = el.nodeName.split(':').pop();	// tag without namespace
@@ -278,12 +280,10 @@ function BPMN2Specif( xmlString, opts ) {
 			switch(tag) {
 				case 'laneSet':
 					// has been analyzed, before
-					return;
 				case 'sequenceFlow':
 				case 'association':
-				case 'textAnnotation':
 					// will be analyzed in a later pass
-					break;
+					return;
 				case 'task':
 				case 'userTask':
 				case 'scriptTask':
@@ -500,6 +500,32 @@ function BPMN2Specif( xmlString, opts ) {
 					// list the gateway for postprocessing in the next pass:
 					gwL.push(gw);
 					break;
+				case 'textAnnotation':
+					idx = taL.length+1;
+					title = opts.strTextAnnotation + (idx>9? ' '+idx : ' 0'+idx);  // assuming there won't be more than 99 annotations
+					// even though there should be only one sub-element:
+					Array.from(el.childNodes).forEach( function(txt) {
+//						console.debug('textAnnotation.childNode',txt);
+						if( !txt.tagName ) return;
+						if( txt.tagName.includes('text') ) {
+							model.resources.push({
+								id: id,
+								title: title,
+								class: "RC-Note",
+								properties: [{
+									class: "PC-Name",
+									value: title
+								}, {
+									class: "PC-Description",
+									value: '<p>'+ctrl2HTML(txt.innerHTML)+'</p>'
+								}],
+								changedAt: opts.xmlDate
+							});
+							// memorize all text annotations to include them in the hierarchy:
+							taL.push(id)
+						}
+					});
+					break;
 				default:
 					console.warn('The BPMN element with tag ',tag,' and title ',title,' has not been transformed.')
 			};
@@ -520,35 +546,7 @@ function BPMN2Specif( xmlString, opts ) {
 				})
 			}
 		});
-		// 4.3 Third pass to collect the text annotations:
-		let tL = Array.from(xmlDoc.querySelectorAll("textAnnotation"));
-		tL.forEach( function(ta,idx) {
-			id = ta.getAttribute("id");
-			title = opts.strTextAnnotation + (++idx>9? ' '+idx : ' 0'+idx);
-			// even though there should be only one sub-element:
-			Array.from(ta.childNodes).forEach( function(txt) {
-//				console.debug('textAnnotation.childNode',txt);
-				if( !txt.tagName ) return;
-				if( txt.tagName.includes('text') ) {
-					model.resources.push({
-						id: id,
-						title: title,
-						class: "RC-Note",
-						properties: [{
-							class: "PC-Name",
-							value: title
-						}, {
-							class: "PC-Description",
-							value: '<p>'+ctrl2HTML(txt.innerHTML)+'</p>'
-						}],
-						changedAt: opts.xmlDate
-					});
-					// memorize all text annotations to include them in the hierarchy:
-					taL.push(id)
-				}
-			});
-		})
-		// 4.4 Fourth pass to collect the relations between model-elements:
+		// 4.3 Third pass to collect the relations between model-elements:
 		Array.from(pr.childNodes).forEach( function(el) {
 			// quit, if the child node does not have a tag, e.g. it is '#text':
 			if( !el.tagName ) return;
@@ -756,7 +754,7 @@ function BPMN2Specif( xmlString, opts ) {
 	// Add the tree:
 	model.hierarchies = NodeList(model.resources);
 	
-	console.debug('model',model);
+//	console.debug('model',model);
 	return model;
 	
 // =======================================
@@ -780,17 +778,17 @@ function BPMN2Specif( xmlString, opts ) {
 			changedAt: opts.xmlDate
 		},{
 			id: "DT-String",
-			title: "String[1024]",
+			title: "String [1024]",
 			description: "String with length 1024",
 			type: "xs:string",
 			maxLength: 1024,
 			changedAt: opts.xmlDate
 		},{
 			id: "DT-formattedText",
-			title: "xhtml[1024]",
-			description: "Formatted String with length 1024",
+			title: "xhtml [8192]",
+			description: "Formatted String with length 8192",
 			type: "xhtml",
-			maxLength: 1024,
+			maxLength: 8192,
 			changedAt: opts.xmlDate
 		}]
 	}
@@ -831,13 +829,15 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "RC-Diagram",
 			title: "SpecIF:Diagram",
 			description: "A 'Diagram' is a graphical model view with a specific communication purpose, e.g. a business process or system composition.",
-			propertyClasses: ["PC-Name","PC-Diagram","PC-Notation"],
+			instantiation: ['user'],
+			propertyClasses: ["PC-Name","PC-Description","PC-Diagram","PC-Notation"],
 			icon: "&#9635;",
 			changedAt: opts.xmlDate
 		},{
 			id: "RC-Actor",
 			title: "FMC:Actor",
 			description: "An 'Actor' is a fundamental model element type representing an active entity, be it an activity, a process step, a function, a system component or a role.",
+			instantiation: ['auto'],
 			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
 			icon: "&#9632;",
 			changedAt: opts.xmlDate
@@ -845,6 +845,7 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "RC-State",
 			title: "FMC:State",
 			description: "A 'State' is a fundamental model element type representing a passive entity, be it a value, a condition, an information storage or even a physical shape.",
+			instantiation: ['auto'],
 			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
 			icon: "&#9679;",
 			changedAt: opts.xmlDate
@@ -852,6 +853,7 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "RC-Event",
 			title: "FMC:Event",
 			description: "An 'Event' is a fundamental model element type representing a time reference, a change in condition/value or more generally a synchronisation primitive.",
+			instantiation: ['auto'],
 			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
 			icon: "&#9830;",
 			changedAt: opts.xmlDate
@@ -864,6 +866,7 @@ function BPMN2Specif( xmlString, opts ) {
 		},{
 			id: "RC-Collection",
 			title: "SpecIF:Collection",
+			instantiation: ['auto'],
 			description: "A 'Collection' is an arbitrary group of resources linked with a SpecIF:contains statement. It corresponds to a 'Group' in BPMN Diagrams.",
 			propertyClasses: ["PC-Name"],
 			changedAt: opts.xmlDate
@@ -872,11 +875,13 @@ function BPMN2Specif( xmlString, opts ) {
 			title: "SpecIF:Heading",
 			description: "Folder with title and text for chapters or descriptive paragraphs.",
 			isHeading: true,
-			propertyClasses: ["PC-Name","PC-Description"],
+			instantiation: ['auto','user'],
+			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
 			changedAt: opts.xmlDate
 		},{
 			id: "RC-Processmodel",
 			title: "SpecIF:Hierarchy",
+			instantiation: ['user'],
 			description: "Root node of a process model (outline).",
 			isHeading: true,
 			changedAt: opts.xmlDate
@@ -888,64 +893,73 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "SC-shows",
 			title: "SpecIF:shows",
 			description: "Statement: Plan shows Model-Element",
-			subjectTypes: ["RC-Diagram"],
-			objectTypes: ["RC-Actor", "RC-State", "RC-Event"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Diagram"],
+			objectClasses: ["RC-Actor", "RC-State", "RC-Event"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-contains",
 			title: "SpecIF:contains",
 			description: "Statement: Model-Element contains Model-Element",
-			subjectTypes: ["RC-Actor", "RC-State", "RC-Event"],
-			objectTypes: ["RC-Actor", "RC-State", "RC-Event"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor", "RC-State", "RC-Event"],
+			objectClasses: ["RC-Actor", "RC-State", "RC-Event"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-stores",
 			title: "SpecIF:stores",
 			description: "Statement: Actor (Role, Function) writes and reads State (Information)",
-			subjectTypes: ["RC-Actor"],
-			objectTypes: ["RC-State"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor"],
+			objectClasses: ["RC-State"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-writes",
 			title: "SpecIF:writes",
 			description: "Statement: Actor (Role, Function) writes State (Information)",
-			subjectTypes: ["RC-Actor"],
-			objectTypes: ["RC-State"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor"],
+			objectClasses: ["RC-State"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-reads",
 			title: "SpecIF:reads",
 			description: "Statement: Actor (Role, Function) reads State (Information)",
-			subjectTypes: ["RC-Actor"],
-			objectTypes: ["RC-State"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor"],
+			objectClasses: ["RC-State"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-precedes",
 			title: "SpecIF:precedes",
 			description: "A FMC:Actor 'precedes' a FMC:Actor; e.g. in a business process or activity flow.",
-			subjectTypes: ["RC-Actor"],
-			objectTypes: ["RC-Actor"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor"],
+			objectClasses: ["RC-Actor"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-signals",
 			title: "SpecIF:signals",
 			description: "A FMC:Actor 'signals' a FMC:Event.",
-			subjectTypes: ["RC-Actor", "RC-Event"],
-			objectTypes: ["RC-Event"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Actor", "RC-Event"],
+			objectClasses: ["RC-Event"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-triggers",
 			title: "SpecIF:triggers",
 			description: "A FMC:Event 'triggers' a FMC:Actor.",
-			subjectTypes: ["RC-Event"],
-			objectTypes: ["RC-Actor"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Event"],
+			objectClasses: ["RC-Actor"],
 			changedAt: opts.xmlDate
 		},{
 			id: "SC-refersTo",
 			title: "SpecIF:refersTo",
 			description: "A SpecIF:Comment, SpecIF:Note or SpecIF:Issue 'refers to' any other resource.",
-			subjectTypes: ["RC-Note"],
-			objectTypes: ["RC-Diagram", "RC-Actor", "RC-State", "RC-Event", "RC-Collection"],
+			instantiation: ['auto'],
+			subjectClasses: ["RC-Note"],
+			objectClasses: ["RC-Diagram", "RC-Actor", "RC-State", "RC-Event", "RC-Collection"],
 			changedAt: opts.xmlDate
 		}]
 	}
@@ -959,6 +973,9 @@ function BPMN2Specif( xmlString, opts ) {
 			properties: [{
 				class: "PC-Name",
 				value: opts.strGlossaryFolder
+			},{
+				class: "PC-Type",
+				value: opts.strGlossaryType
 			}],
 			changedAt: opts.xmlDate
 		}, {

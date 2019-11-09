@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_11h4uys" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="5.1.2">
+  <bpmn:collaboration id="Collaboration_1ljuzu4">
+    <bpmn:participant id="Participant_1kws32t" name="Role" processRef="Process_0m12xhd" />
+    <bpmn:participant id="Participant_18ge8lc" processRef="Process_1ieahng" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_0m12xhd" isExecutable="false">
+    <bpmn:dataStoreReference id="DataStoreReference_06rmg0p" name="SAP" />
+    <bpmn:startEvent id="StartEvent_1ce6r8t" name="Start!">
+      <bpmn:outgoing>SequenceFlow_1foj6lu</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_0nog54j" name="Do">
+      <bpmn:incoming>SequenceFlow_1foj6lu</bpmn:incoming>
+      <bpmn:property id="Property_1xcdl23" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DataInputAssociation_1qv060l">
+        <bpmn:sourceRef>DataStoreReference_06rmg0p</bpmn:sourceRef>
+        <bpmn:targetRef>Property_1xcdl23</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="SequenceFlow_1foj6lu" sourceRef="StartEvent_1ce6r8t" targetRef="Task_0nog54j" />
+  </bpmn:process>
+  <bpmn:process id="Process_1ieahng" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1ljuzu4">
+      <bpmndi:BPMNShape id="Participant_1kws32t_di" bpmnElement="Participant_1kws32t" isHorizontal="true">
+        <dc:Bounds x="156" y="80" width="1624" height="500" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1ce6r8t">
+        <dc:Bounds x="206" y="141" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="211" y="184" width="26" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_18ge8lc_di" bpmnElement="Participant_18ge8lc" isHorizontal="true">
+        <dc:Bounds x="156" y="669" width="1624" height="230" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStoreReference_06rmg0p_di" bpmnElement="DataStoreReference_06rmg0p">
+        <dc:Bounds x="325" y="595" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="339" y="623" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_0nog54j_di" bpmnElement="Task_0nog54j">
+        <dc:Bounds x="300" y="420" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DataInputAssociation_1qv060l_di" bpmnElement="DataInputAssociation_1qv060l">
+        <di:waypoint x="350" y="595" />
+        <di:waypoint x="350" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1foj6lu_di" bpmnElement="SequenceFlow_1foj6lu">
+        <di:waypoint x="242" y="159" />
+        <di:waypoint x="271" y="159" />
+        <di:waypoint x="271" y="460" />
+        <di:waypoint x="300" y="460" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
