@@ -1,6 +1,6 @@
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:influx="http://influx.adesso.de/namespace" id="Definitions_1cakvaf" name="Projektvorgehen-Beispiel.bpmn" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="3.3.4" influx:provider="http://influx.adesso.de/plugin/datastore/bpmn/process-definitions" fileName="Projektvorgehen-Beispiel.bpmn">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:influx="http://influx.adesso.de/namespace" id="Definitions_1cakvaf" name="Projektvorgehen-Prozess" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="3.3.4" influx:provider="http://influx.adesso.de/plugin/datastore/bpmn/process-definitions" fileName="Projektvorgehen-Prozess.bpmn">
   <bpmn:collaboration id="Collaboration_0id9rma">
-    <bpmn:participant id="Participant_00hf42m" name="Projektvorgehen" processRef="Process_0piakzz"/>
+    <bpmn:participant id="Participant_00hf42m" name="UnsereFirma" processRef="Process_0piakzz"/>
     <bpmn:participant id="Participant_1pdsd9i" name="Kunde" processRef="Process_14guc13"/>
     <bpmn:messageFlow id="MessageFlow_0q3dq0v" sourceRef="Participant_1pdsd9i" targetRef="Participant_00hf42m"/>
     <bpmn:messageFlow id="MessageFlow_10yuu3p" sourceRef="Participant_00hf42m" targetRef="Participant_1pdsd9i"/>
@@ -27,7 +27,7 @@
     <bpmn:sequenceFlow id="SequenceFlow_0wbquj3" sourceRef="StartEvent_10p4xuj" targetRef="Task_1uvtxd3"/>
     <bpmn:sequenceFlow id="SequenceFlow_0egpda0" name="ja" sourceRef="ExclusiveGateway_1bhue8w" targetRef="Task_0ocs83g"/>
     <bpmn:sequenceFlow id="SequenceFlow_0751f1t" name="nein" sourceRef="ExclusiveGateway_1bhue8w" targetRef="EndEvent_1458ql0"/>
-    <bpmn:dataStoreReference id="DataStoreReference_163hnuk" name="FiCo-Data"/>
+    <bpmn:dataStoreReference id="DataStoreReference_163hnuk" name="FiCo-Daten"/>
     <bpmn:dataObjectReference id="DataObjectReference_1pi4yds" name="Interner Projektauftrag" dataObjectRef="DataObject_0rxnjfk"/>
     <bpmn:dataObject id="DataObject_0rxnjfk"/>
     <bpmn:dataObjectReference id="DataObjectReference_1v84fnm" name="Angebot" dataObjectRef="DataObject_06xiu1h"/>
@@ -47,7 +47,7 @@
     <bpmn:endEvent id="EndEvent_1t91aqn" name="Projekt abgeschlossen">
       <bpmn:incoming>SequenceFlow_0pcc3tc</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:dataStoreReference id="DataStoreReference_1a2mxtj" name="FiCo-Data"/>
+    <bpmn:dataStoreReference id="DataStoreReference_1a2mxtj" name="FiCo-Daten"/>
     <bpmn:sequenceFlow id="SequenceFlow_0zzoz17" sourceRef="Task_0ocs83g" targetRef="Task_0zb1mck"/>
     <bpmn:sequenceFlow id="SequenceFlow_0djzk88" sourceRef="Task_0zb1mck" targetRef="Task_0x408on"/>
     <bpmn:sequenceFlow id="SequenceFlow_1yyisen" sourceRef="Task_0x408on" targetRef="Task_1ixalzj"/>

@@ -129,7 +129,7 @@ function BPMN2Specif( xmlString, opts ) {
 			model.resources.push({
 				id: el.getAttribute("id"),
 				process: el.getAttribute("processRef"),
-				title: el.getAttribute("name"),
+				title: el.getAttribute("name") || '',
 				class: 'RC-Actor',
 				properties: [{
 					class: "PC-Name",
@@ -146,7 +146,7 @@ function BPMN2Specif( xmlString, opts ) {
 			// a. The message data (FMC:State):
 			model.resources.push({
 				id: el.getAttribute("id"),
-				title: el.getAttribute("name"),
+				title: el.getAttribute("name") || '',
 				class: 'RC-State',
 				properties: [{
 					class: "PC-Name",
@@ -229,7 +229,7 @@ function BPMN2Specif( xmlString, opts ) {
 								// store the lane as SpecIF:Role
 								model.resources.push({
 									id: el2Id,
-									title: elName,
+									title: elName || '',
 									class: 'RC-Actor',
 									properties: [{
 										class: "PC-Name",
@@ -754,7 +754,7 @@ function BPMN2Specif( xmlString, opts ) {
 	// Add the tree:
 	model.hierarchies = NodeList(model.resources);
 	
-//	console.debug('model',model);
+	console.debug('model',model);
 	return model;
 	
 // =======================================
