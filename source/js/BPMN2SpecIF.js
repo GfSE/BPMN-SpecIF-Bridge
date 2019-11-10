@@ -754,7 +754,7 @@ function BPMN2Specif( xmlString, opts ) {
 	// Add the tree:
 	model.hierarchies = NodeList(model.resources);
 	
-	console.debug('model',model);
+//	console.debug('model',model);
 	return model;
 	
 // =======================================
@@ -784,7 +784,7 @@ function BPMN2Specif( xmlString, opts ) {
 			maxLength: 1024,
 			changedAt: opts.xmlDate
 		},{
-			id: "DT-formattedText",
+			id: "DT-FormattedText",
 			title: "xhtml [8192]",
 			description: "Formatted String with length 8192",
 			type: "xhtml",
@@ -803,12 +803,12 @@ function BPMN2Specif( xmlString, opts ) {
 			},{
 				id: "PC-Description",
 				title: "dcterms:description",
-				dataType: "DT-formattedText",
+				dataType: "DT-FormattedText",
 				changedAt: opts.xmlDate
 			},{
 				id: "PC-Diagram",
 				title: "SpecIF:Diagram",
-				dataType: "DT-formattedText",
+				dataType: "DT-FormattedText",
 				changedAt: opts.xmlDate
 			},{
 				id: "PC-Notation",
