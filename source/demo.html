@@ -11,15 +11,13 @@
     <script>
         // Read the files, transform BPMN to SpecIF and store locally as ZIP:
         function readFile() {
-            var xmlFile = document.getElementById("XML").files[0],
-				svgFile = document.getElementById("SVG").files[0];
+            var xmlFile = document.getElementById("XML").files[0];
 			var opts = {};
 			opts.xmlName = xmlFile.name;
 			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
 			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
 			opts.xmlDate = new Date(xmlFile.lastModified)
             opts.xmlDate = opts.xmlDate.toISOString();
-			opts.svgName = svgFile? svgFile.name : null;
 
             let reader = new FileReader();
 			reader.addEventListener('loadend', createSpecifz );
@@ -62,10 +60,6 @@
 <body>
 
     <h2>BPMN 2.0 to SpecIF Transformation</h2>
-
-    <p>BPMN Grafik
-        <input type="file" id="SVG">
-	</p>
 
 	<p>BPMN XML
 		<input type="file" id="XML">

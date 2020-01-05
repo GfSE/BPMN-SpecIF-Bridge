@@ -15,10 +15,10 @@ function BPMN2Specif( xmlString, opts ) {
 	if( typeof(opts.isIE)!='boolean' )
 		opts.isIE = /MSIE |rv:11.0/i.test( navigator.userAgent );
 	
+	if( !opts.strGlossaryClass ) 
+		opts.strGlossaryClass = "SpecIF:Glossary";
 	if( !opts.strGlossaryFolder ) 
 		opts.strGlossaryFolder = "Model-Elements (Glossary)";
-	if( !opts.strGlossaryType ) 
-		opts.strGlossaryType = "SpecIF:Glossary";
 	if( !opts.strActorFolder ) 
 		opts.strActorFolder = "Actors";
 	if( !opts.strStateFolder ) 
@@ -27,6 +27,8 @@ function BPMN2Specif( xmlString, opts ) {
 		opts.strEventFolder = "Events";
 	if( !opts.strAnnotationFolder ) 
 		opts.strAnnotationFolder = "Text Annotations";
+	if( !opts.strBusinessProcessClass ) 
+		opts.strBusinessProcessClass = 'SpecIF:BusinessProcesses';
 	if( !opts.strBusinessProcessFolder ) 
 		opts.strBusinessProcessFolder = "Business Processes";
 
@@ -90,20 +92,11 @@ function BPMN2Specif( xmlString, opts ) {
 		type: opts.mimeType,
 		changedAt: opts.xmlDate
 	}];
-/*	// - an image of the process, if available:
-	if( opts.svgName )
-		model.files.push({
-			id: 'F-'+simpleHash(opts.svgName),
-			title: opts.svgName,
-		//	blob: ,
-			type: "image/svg+xml"
-		}); */
 
 	const apx = simpleHash(model.id),
 		diagramId = 'D-' + apx,
 		hId = 'BPMN-outline-' + apx,
-		dg = opts.svgName?"<object data=\""+opts.svgName+"\" type=\"image/svg+xml\" >"+opts.svgName+"</object>"
-						:"<object data=\""+opts.xmlName+"\" type=\"application/bpmn+xml\" >"+opts.xmlName+"</object>";
+		diagRef = "<object data=\""+opts.xmlName+"\" type=\"application/bpmn+xml\" >"+opts.xmlName+"</object>";
 	// 1. Add the folders:
 	model.resources = Folders();
 	// 2. Represent the diagram itself:
@@ -116,27 +109,39 @@ function BPMN2Specif( xmlString, opts ) {
 			value: model.title
 		}, {
 			class: "PC-Diagram",
-			value: "<div><p class=\"inline-label\">Model View:</p><p>"+dg+"</p></div>"
+			value: "<div><p class=\"inline-label\">Model View:</p><p>"+diagRef+"</p></div>"
 		}, {
-			class: "PC-Notation",
+			class: "PC-Type",
 			value: "SpecIF:BusinessProcess"
 		}],
 		changedAt: opts.xmlDate
 	});
+
+	// ToDo: Choose carefully between using tagName or nodeName,
+	// see: https://stackoverflow.com/questions/4878484/difference-between-tagname-and-nodename
 	
 	// 3. Analyse the 'collaboration' and get the participating processes plus the exchanged messages.
 	// x[0].childNodes.forEach does not work for NodeLists in IE:
 	Array.from(x[0].childNodes).forEach( function(el) {
-//		console.debug('collaboration element',el);
+		console.debug('collaboration element',el);
 		// quit, if the child node does not have a tag, e.g. if it is '#text':
 		if( !el.tagName ) return;
 		let tag = el.tagName.split(':').pop();	// tag without namespace
-		// 3.1 The participating processes;
+		// 3.1 The documentation of the collaboration (model):
+		if (el.nodeName.includes("documentation")) {
+			let diag = itemById(model.resources,diagramId);
+			if( diag ) 
+				diag.properties.push({
+					class: "PC-Description",
+					value: el.innerHTML
+				})
+		};		
+		// 3.2 The participating processes;
 		// we transform the participants with their id, but not the processes:
 		if (el.nodeName.includes("participant")) {
 			model.resources.push({
 				id: el.getAttribute("id"),
-				process: el.getAttribute("processRef"),
+				process: el.getAttribute("processRef"),  // intermediate store for process id
 				title: el.getAttribute("name") || '',
 				class: 'RC-Actor',
 				properties: [{
@@ -149,7 +154,7 @@ function BPMN2Specif( xmlString, opts ) {
 				changedAt: opts.xmlDate
 			})
 		};
-		// 3.2 The messages between the processes:
+		// 3.3 The messages between the processes:
 		if (el.nodeName.includes("messageFlow")) {
 			// a. The message data (FMC:State):
 			model.resources.push({
@@ -209,7 +214,7 @@ function BPMN2Specif( xmlString, opts ) {
 //			console.debug('#1',tag);
 			switch(tag) {
 				case 'laneSet':
-					// 3.1 Get the laneSets/lanes with their model elements;
+					// 4.1 Get the laneSets/lanes with their model elements;
 					//    	note that a 'laneSet' is not mandatory, e.g. BPMNio does not necessarily provide any.
 					/* Nested lanes are possible, as well, but not yet supported (ToDo):
 						  <lane id="dienststelle" name="Dienststelle">
@@ -288,7 +293,7 @@ function BPMN2Specif( xmlString, opts ) {
 			});
 			tag = el.tagName.split(':').pop();	// tag without namespace
 //			console.debug('#2',el,tag,id,title,desc);
-			let found = false,
+			let addContainment = false,
 				gw;
 			switch(tag) {
 				case 'laneSet':
@@ -379,7 +384,7 @@ function BPMN2Specif( xmlString, opts ) {
 							})
 						}
 					});
-					found = true;
+					addContainment = true;
 					break;
 				case 'dataObjectReference':
 				case 'dataStoreReference':
@@ -407,7 +412,7 @@ function BPMN2Specif( xmlString, opts ) {
 							class: "PC-Description",
 							value: desc
 						});
-					found = true;
+				//	addContainment = true;
 					break;
 				case 'dataObject':
 				case 'dataStore':
@@ -438,11 +443,11 @@ function BPMN2Specif( xmlString, opts ) {
 							class: "PC-Description",
 							value: desc
 						});
-					found = true;
+					addContainment = true;
 					break;
-				case 'inclusiveGateway':
-				case 'exclusiveGateway':
 				case 'parallelGateway':
+				case 'exclusiveGateway':
+				case 'inclusiveGateway':
 					gw = {id:id,class:tag,incoming:[],outgoing:[]};
 					Array.from(el.childNodes).forEach( function(ch) {
 						if( !ch.tagName ) return;
@@ -463,36 +468,46 @@ function BPMN2Specif( xmlString, opts ) {
 						return
 					};
 					// else:
-					found = true;
-					// Transform all joining gateways to actors:
+				//	addContainment = true;
+					// Transform all gateways to actors:
 					if( gw.outgoing.length==1 ) {
+						// joining gateway:
 						switch( tag ) {
-							case 'exclusiveGateway':
-								title = opts.strJoinExcGateway;
-								desc = opts.strJoinExcGatewayDesc;
-								break;
 							case 'parallelGateway':
 								title = opts.strJoinParGateway;
 								desc = opts.strJoinParGatewayDesc;
+								break;
+							case 'exclusiveGateway':
+								title = opts.strJoinExcGateway;
+								desc = opts.strJoinExcGatewayDesc;
 								break;
 							case 'inclusiveGateway':
 								title = opts.strJoinIncGateway;
 								desc = opts.strJoinIncGatewayDesc
 						}
 					} else { 
-						// else: gw.outgoing.length>1
+						// forking gateway (gw.outgoing.length>1):
 						switch( tag ) {
-							case 'exclusiveGateway':
-								title = opts.strForkExcGateway;
-								desc = opts.strForkExcGatewayDesc;
-								break;
 							case 'parallelGateway':
 								title = opts.strForkParGateway;
 								desc = opts.strForkParGatewayDesc;
+								// no events per branch in this case, as there is no decision 
+								break;
+							case 'exclusiveGateway':
+								// Add the title (condition), if specified:
+								title = opts.strForkExcGateway+(title? ': '+title : '');
+								desc = opts.strForkExcGatewayDesc;
+								// list the gateway for adding an event per option in the next pass:
+								gw.title = title || tag;
+								gwL.push(gw);
 								break;
 							case 'inclusiveGateway':
-								title = opts.strForkIncGateway;
-								desc = opts.strForkIncGatewayDesc
+								// Add the title (condition), if specified:
+								title = opts.strForkIncGateway+(title? ': '+title : '');
+								desc = opts.strForkIncGatewayDesc;
+								// list the gateway for adding an event per option in the next pass:
+								gw.title = title || tag;
+								gwL.push(gw)
 						}
 					};
 					model.resources.push({
@@ -511,8 +526,6 @@ function BPMN2Specif( xmlString, opts ) {
 						}],
 						changedAt: opts.xmlDate
 					});
-					// list the gateway for postprocessing in the next pass:
-					gwL.push(gw);
 					break;
 				case 'textAnnotation':
 					// will be analyzed in a later pass
@@ -521,7 +534,7 @@ function BPMN2Specif( xmlString, opts ) {
 					console.warn('The BPMN element with tag ',tag,' and title ',title,' has not been transformed.')
 			};
 			// Add a containment relation for every transformed model-element:
-			if( found ) {
+			if( addContainment ) {
 				// look, whether the element is contained in a lane:
 				cId = ctL.find( function(s) {return s.object==id} );
 				// use the lane as container, if there is any, or the process otherwise:
@@ -549,21 +562,23 @@ function BPMN2Specif( xmlString, opts ) {
 			// else:
 			id = el.getAttribute("id");
 			title = el.getAttribute("name");
-//			console.debug('#3',tag,id,title);
+//			console.debug('#3',gwL,el,tag,id,title);
 			switch(tag) {
 				case 'sequenceFlow':
-					// just the sequenceFlow, where the subject is a forking exclusive gateway, needs special attention:
+					// A sequenceFlow, where the subject is a forking exclusive or inclusive gateway, needs special attention,
+					// these have been listed in gwL in the previous pass:
+
+					// In case of a forking exclusive or inclusive gateway, every outgoing connection is transformed
+					// to an event with a signal and trigger relation,
+					// but only, if the sequenceFlow's title is defined:
 					let feG = itemById(gwL,el.getAttribute('sourceRef'));
-					if( feG ) {
-						// In case of a forking exclusive gateway, every outgoing connection is transformed
-						// to an event with a signal and trigger relation:
+					if( feG && title ) {
 						seqF = {
 							subject: feG,
 							object:  itemById(model.resources,el.getAttribute('targetRef'))
 						};
 						// a. store an event representing the case:
-						title = (seqF.subject.title? seqF.subject.title+' → ' : '')+title; // → = &rarr; = &#8594;
-						model.resources.push({
+						let ev = {
 							id: id,
 							title: title,
 							class: "RC-Event",
@@ -572,10 +587,17 @@ function BPMN2Specif( xmlString, opts ) {
 								value: title
 							}, {
 								class: "PC-Type",
-								value: 'SpecIF:'+'Condition'
+								value: 'SpecIF:Condition'
 							}],
 							changedAt: opts.xmlDate
-						});
+						};
+						// Add a description to the last element, if there is additional information:
+						if( seqF.subject.title )
+							ev.properties.push({
+								class: "PC-Description",
+								value: seqF.subject.title+' → '+title	// → = &rarr; = &#8594;
+							});
+						model.resources.push( ev );
 						// b. store the signal relation:
 						model.statements.push({
 							id: id+'-s',
@@ -711,25 +733,25 @@ function BPMN2Specif( xmlString, opts ) {
 			id: "H-"+hId,
 			resource: hId,
 			nodes: [{
-				id: "N-"+diagramId,
+				id: genID("N-"),
 				resource: diagramId,
 				nodes: [],
 				changedAt: opts.xmlDate
 			},{
-				id: "N-FolderGlossary-" + apx,
+				id: genID("N-"),
 				resource: "FolderGlossary-" + apx,
 				nodes: [{
-					id: "N-FolderAct-" + apx,
+					id: genID("N-"),
 					resource: "FolderAct-" + apx,
 					nodes: [],
 					changedAt: opts.xmlDate
 				},{
-					id: "N-FolderSta-" + apx,
+					id: genID("N-"),
 					resource: "FolderSta-" + apx,
 					nodes: [],
 					changedAt: opts.xmlDate
 				},{
-					id: "N-FolderEvt-" + apx,
+					id: genID("N-"),
 					resource: "FolderEvt-" + apx,
 					nodes: [],
 					changedAt: opts.xmlDate
@@ -751,7 +773,7 @@ function BPMN2Specif( xmlString, opts ) {
 			});
 		res.forEach( function(r) { 
 			let nd = {
-				id: "N-" + r.id,
+				id: genID("N-"),
 				resource: r.id,
 				changedAt: opts.xmlDate
 			};
@@ -764,7 +786,7 @@ function BPMN2Specif( xmlString, opts ) {
 		// else:
 		// 8.3 Add text annotations to the model diagram:
 	/*	nL[0].nodes[0].nodes.push({
-			id: "N-FolderNte-" + apx,
+			id: genID("N-"),
 			resource: "FolderNte-" + apx,
 			nodes: [],
 			changedAt: opts.xmlDate
@@ -772,7 +794,7 @@ function BPMN2Specif( xmlString, opts ) {
 		taL.forEach( function(a) { 
 	//		nL[0].nodes[0].nodes[0].nodes.push({
 			nL[0].nodes[0].nodes.push({
-				id: "N-" + a,
+				id: genID("N-"),
 				resource: a,
 				changedAt: opts.xmlDate
 			})
@@ -783,20 +805,21 @@ function BPMN2Specif( xmlString, opts ) {
 	model.resources.push({
 		id: hId,
 		title: opts.strBusinessProcessFolder,
-		class: "RC-ProcessModel",
+	//	class: "RC-ProcessModel",
+		class: "RC-Folder",
 		properties: [{
 			class: "PC-Name",
 			value: opts.strBusinessProcessFolder
 		}, {
 			class: "PC-Type",
-			value: 'SpecIF:BusinessProcesses'
+			value: opts.strBusinessProcessClass
 		}],
 		changedAt: opts.xmlDate
 	});
 	// Add the tree:
 	model.hierarchies = NodeList(model.resources);
 	
-//	console.debug('model',model);
+	console.debug('model',model);
 	return model;
 	
 // =======================================
@@ -852,11 +875,11 @@ function BPMN2Specif( xmlString, opts ) {
 				title: "SpecIF:Diagram",
 				dataType: "DT-FormattedText",
 				changedAt: opts.xmlDate
-			},{
+		/*	},{
 				id: "PC-Notation",
 				title: "SpecIF:Notation",
 				dataType: "DT-ShortString",
-				changedAt: opts.xmlDate
+				changedAt: opts.xmlDate  */
 			},{
 				id: "PC-Type",
 				title: "dcterms:type",
@@ -872,7 +895,7 @@ function BPMN2Specif( xmlString, opts ) {
 			title: "SpecIF:Diagram",
 			description: "A 'Diagram' is a graphical model view with a specific communication purpose, e.g. a business process or system composition.",
 			instantiation: ['user'],
-			propertyClasses: ["PC-Name","PC-Description","PC-Diagram","PC-Notation"],
+			propertyClasses: ["PC-Name","PC-Description","PC-Diagram","PC-Type"],
 			icon: "&#9635;",
 			changedAt: opts.xmlDate
 		},{
@@ -920,14 +943,14 @@ function BPMN2Specif( xmlString, opts ) {
 			instantiation: ['auto','user'],
 			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
 			changedAt: opts.xmlDate
-		},{
+	/*	},{
 			id: "RC-ProcessModel",
 			title: "SpecIF:Hierarchy",
 			description: "Root node of a process model (outline).",
 			isHeading: true,
 			instantiation: ['auto'],
 			propertyClasses: ["PC-Name","PC-Description","PC-Type"],
-			changedAt: opts.xmlDate
+			changedAt: opts.xmlDate  */
 		}]
 	}
 	// The statement classes:
@@ -1018,7 +1041,7 @@ function BPMN2Specif( xmlString, opts ) {
 				value: opts.strGlossaryFolder
 			},{
 				class: "PC-Type",
-				value: opts.strGlossaryType
+				value: opts.strGlossaryClass
 			}],
 			changedAt: opts.xmlDate
 		}, {
@@ -1074,4 +1097,15 @@ function BPMN2Specif( xmlString, opts ) {
 	// Make a very simple hash code from a string:
 	// http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
 	function simpleHash(str) {for(var r=0,i=0;i<str.length;i++)r=(r<<5)-r+str.charCodeAt(i),r&=r;return r};
+	// http://stackoverflow.com/questions/10726909/random-alpha-numeric-string-in-javascript
+	function genID(pfx) {
+		if( !pfx || pfx.length<1 )
+			pfx = 'ID_'
+		else
+			if( !/^[A-Za-z_]/.test(pfx) ) pfx = '_'+pfx;   // prefix must begin with a letter or '_'
+		const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		let result = '';
+		for( var i=27; i>0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
+		return pfx+result
+	}
 }
