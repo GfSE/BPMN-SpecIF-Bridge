@@ -13,11 +13,11 @@
         function readFile() {
             var xmlFile = document.getElementById("XML").files[0];
 			var opts = {};
-			opts.xmlName = xmlFile.name;
+			opts.fileName = xmlFile.name;
 			opts.title = prompt("Bitte geben Sie einen Projektnamen ein", "DefaultTitle");
 			opts.description = prompt("Bitte geben Sie eine Projektbeschreibung ein", "DefaultDescription");
-			opts.xmlDate = new Date(xmlFile.lastModified)
-            opts.xmlDate = opts.xmlDate.toISOString();
+			opts.fileDate = new Date(xmlFile.lastModified)
+            opts.fileDate = opts.fileDate.toISOString();
 
             let reader = new FileReader();
 			reader.addEventListener('loadend', createSpecifz );
@@ -41,7 +41,7 @@
 				document.getElementById("output").innerHTML = myBeautyJSON;
 
 				let zip = new JSZip();
-				zip.file( opts.xmlName, xmlFile );
+				zip.file( opts.fileName, xmlFile );
 				zip.file( opts.title+".specif", myJSON);
 				if( svgFile )
 					zip.file( opts.svgName, svgFile );
