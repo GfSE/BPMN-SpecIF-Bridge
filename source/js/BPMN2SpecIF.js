@@ -77,9 +77,13 @@ function BPMN2Specif( xmlString, opts ) {
 	// Participants are source and/or target for message-flows (not the referenced processes),
 	// so we decide to transform the participants to SpecIF, but not the processes.
 	let x = Array.from(xmlDoc.querySelectorAll("collaboration"));
-	// There should be only one collaboration per BPMN file:
+	// There should be exactly one collaboration per BPMN file:
+	if( x.length<1 ) {
+		console.error("Diagram with id '",model.id,"' has no collaboration.");
+		return
+	};
 	if( x.length>1 )
-		console.warn("Diagram with id ',model.id,' has more than one collaboration.");
+		console.warn("Diagram with id '",model.id,"' has more than one collaboration.");
 //	console.debug('collaboration',x);
 
 	// The project's id and title:
@@ -762,7 +766,8 @@ function BPMN2Specif( xmlString, opts ) {
 						value: title
 					}, {
 						class: "PC-Description",
-						value: '<p>'+ctrl2HTML(txt.innerHTML)+'</p>'
+						value: txt.innerHTML
+				//		value: '<p>'+ctrl2HTML(txt.innerHTML)+'</p>'
 					}],
 					changedAt: opts.fileDate
 				});
@@ -903,7 +908,7 @@ function BPMN2Specif( xmlString, opts ) {
 	// Add the tree:
 	model.hierarchies = NodeList(model.resources);
 	
-	console.debug('model',model);
+//	console.debug('model',model);
 	return model;
 	
 // =======================================
@@ -1188,11 +1193,11 @@ function BPMN2Specif( xmlString, opts ) {
 		};
 		return -1
 	}
-	function ctrl2HTML(str) {
+/*	function ctrl2HTML(str) {
 		// Convert js/json control characters (new line) to HTML-tags and remove the others:
 		if( typeof( str )!='string' ) str = '';
 		return str.replace( /\r|\f/g, '' ).replace( /\t/g, nbsp ).replace( /\n/g, '<br />' )
-	}
+	}  */
 	// Make a very simple hash code from a string:
 	// http://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
 	function simpleHash(str) {for(var r=0,i=0;i<str.length;i++)r=(r<<5)-r+str.charCodeAt(i),r&=r;return r};
