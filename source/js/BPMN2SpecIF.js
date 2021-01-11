@@ -62,6 +62,10 @@ function BPMN2Specif( xmlString, opts ) {
 		opts.strJoinIncGateway = "Joining Inclusive Gateway";
 	if( !opts.strJoinIncGatewayDesc ) 
 		opts.strJoinIncGatewayDesc = "<p>Wait for <em>all active</em> incoming branches to continue.</p>";
+	if( !opts.strForkEvtGateway ) 
+		opts.strForkEvtGateway = "Forking (exclusive) Event Gateway";
+	if( !opts.strForkEvtGatewayDesc ) 
+		opts.strForkEvtGatewayDesc = "<p>The first of the following events to occur will prevail.</p>";
 	if( !opts.strForkExcGateway ) 
 		opts.strForkExcGateway = "Forking Exclusive Gateway";
 	if( !opts.strForkExcGatewayDesc ) 
@@ -544,6 +548,7 @@ function BPMN2Specif( xmlString, opts ) {
 					case 'parallelGateway':
 					case 'exclusiveGateway':
 					case 'inclusiveGateway':
+					case "eventBasedGateway":
 						gw = {id:id,class:tag,incoming:[],outgoing:[]};
 						Array.from(el.childNodes, (ch)=>{
 							if( !ch.tagName ) return;
@@ -587,6 +592,11 @@ function BPMN2Specif( xmlString, opts ) {
 								case 'parallelGateway':
 									title = opts.strForkParGateway;
 									desc = opts.strForkParGatewayDesc;
+									// no events per branch in this case, as there is no decision 
+									break;
+								case "eventBasedGateway":
+									title = opts.strForkEvtGateway;
+									desc = opts.strForkEvtGatewayDesc;
 									// no events per branch in this case, as there is no decision 
 									break;
 								case 'exclusiveGateway':
