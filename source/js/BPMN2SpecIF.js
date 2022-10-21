@@ -144,24 +144,59 @@ function BPMN2Specif( xmlString, opts ) {
 	// see: https://stackoverflow.com/questions/4878484/difference-between-tagname-and-nodename
 	
 	// 3. Analyse the 'collaboration' and get the participating processes plus the exchanged messages.
-	Array.from(Cs[0].childNodes, (el)=>{
-//		console.debug('collaboration element',el);
+	Array.from(Cs[0].childNodes, (el) => {
+		//		console.debug('collaboration element',el);
 		// quit, if the child node does not have a tag, e.g. if it is '#text':
-		if( !el.tagName ) return;
+		if (!el.tagName) return;
 		let tag = withoutNamespace(el.tagName),	// tag without namespace
 			res;
 		// 3.1 The documentation of the collaboration (model):
 		if (el.nodeName.includes("documentation")) {
-			res = itemById(model.resources,diagramId);
-			if( res && el.innerHTML ) {
+			res = itemById(model.resources, diagramId);
+			if (res && el.innerHTML) {
 				res.properties.push({
 					class: "PC-Description",
 					value: truncStr(el.innerHTML, opts.textLength, 'Documentation of collaboration')
 				})
 			};
 			return;
-		};		
-		// 3.2 The participating processes;
+		};
+		// 3.2 Groups - this works with models created by Camunda Modeler:
+		/* Example from Camunda Modeler
+			<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1rvjown" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="4.4.0">
+				<bpmn:collaboration id="Collaboration_038004f">
+					<bpmn:participant id="Participant_00yr49w" name="lane-1" processRef="Process_002m5kk" />
+					<bpmn:group id="Group_07dtl7v" categoryValueRef="CategoryValue_11tztz5" />
+				</bpmn:collaboration>
+				...
+				<bpmn:category id="Category_1b95mz3">
+					<bpmn:categoryValue id="CategoryValue_11tztz5" value="group-1" />
+				</bpmn:category>
+				...
+			</bpmn:definitions>
+		*/
+		if (el.nodeName.includes("group")) {
+			let ref = el.getAttribute("categoryValueRef"),
+				name;
+			Array.from(xmlDoc.querySelectorAll("categoryValue"),  // the categories are ignored
+				(cV) => {
+					// only one categoryValue element has the referenced id:
+					if (cV.getAttribute("id") == ref) name = cV.getAttribute("value")
+				}
+			);
+			model.resources.push({
+				id: el.getAttribute("id"),
+				title: name,
+				class: "RC-Collection",
+				properties: [{
+					class: "PC-Type",
+					value: opts.strNamespace + tag
+				}],
+				changedAt: opts.fileDate
+			});
+			return;
+		};
+		// 3.3 The participating processes;
 		// Looking at the specs, 
 		// - there is no process without a participant.
 		// - there can be participants without a process.
@@ -181,9 +216,9 @@ function BPMN2Specif( xmlString, opts ) {
 				}],
 				changedAt: opts.fileDate
 			}
-		};
-		// 3.3 The messages between the participants:
-		if (el.nodeName.includes("messageFlow")) {
+		}
+		// 3.4 The messages between the participants:
+		else if (el.nodeName.includes("messageFlow")) {
 			let oId = el.getAttribute("id"),
 				sRef = el.getAttribute("sourceRef"),
 				tRef = el.getAttribute("targetRef");
@@ -227,7 +262,13 @@ function BPMN2Specif( xmlString, opts ) {
 				}],
 				changedAt: opts.fileDate
 			})
-		};
+		}
+		else
+			// still another tag which is not yet analysed.
+			return;
+
+		if (!res)
+			throw Error("Programming Error in BPMN2Specif: Resource should be defined ...");
 		// Get the documentation of participant resp. messageFlow:
 		Array.from(el.childNodes, (ch) => {
 			if (ch.nodeName.includes("documentation")) {
@@ -239,8 +280,8 @@ function BPMN2Specif( xmlString, opts ) {
 				};
 				return;
 			};
-		})
-		model.resources.push(res);
+		});
+		model.resources.push(res)
 	});
 
 	// 4. Parse the processes.
